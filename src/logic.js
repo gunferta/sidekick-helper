@@ -59,6 +59,25 @@ export function evaluate(deploys, slots, short, fcOnly = false) {
         'Press the X at the top right of the minigame window to restart.',
       ]);
     }
+    if (!hasS) {
+      // An A with no S: the post's 30-minute shortcut assumes an S to level, so it cannot finish yet.
+      if (targets.length) {
+        return out('go', 'You have an A but no S yet', [
+          'The 30-minute shortcut needs an S-rank to level, so it cannot finish this run yet.',
+          'Keep deploying while a combination is still reachable (below), or restart if you are out of time.',
+        ]);
+      }
+      return out('restart', 'Restart the minigame', [
+        'You have an A but no S, and no listed combination is still reachable.',
+        'Press the X at the top right of the minigame window to restart.',
+      ]);
+    }
+    if (!hasA) {
+      return out('stop', 'Stop deploying and level up', [
+        'Max out the S-rank, then your next best unit.',
+        'The post only describes the S + A case, so treat the result as unconfirmed.',
+      ]);
+    }
     return out('stop', 'Stop deploying and level up', [
       'Max out the S-rank, then level the A-rank as far as you can.',
       'Third member B or better: Full Clear. Otherwise you still reach Wave 10.',

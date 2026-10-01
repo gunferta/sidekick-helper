@@ -90,7 +90,7 @@ export default function App() {
         <div className="row foot">
           <label className="check">
             <input type="checkbox" checked={short && !fcOnly} disabled={fcOnly} onChange={(e) => setShort(e.target.checked)} />
-            Short on time
+            Short on time (30 mins)
           </label>
           <div className="actions">
             <button className={`toggle${fcOnly ? ' on' : ''}`} aria-pressed={fcOnly} onClick={() => setFcOnly((v) => !v)}>
@@ -99,7 +99,7 @@ export default function App() {
             <button className="ghost" onClick={reset}>New run</button>
           </div>
         </div>
-        {fcOnly && <p className="note">Wave 10 results are ignored. It tells you to keep going while a Full Clear is still reachable.</p>}
+        {fcOnly && <p className="note">Wave 10 results are ignored. It tells you to keep deploying while a Full Clear is still reachable.</p>}
       </section>
 
       <section className={`verdict ${result.kind}`} aria-live="polite">
@@ -138,7 +138,7 @@ export default function App() {
         , which uses MapleSEA/TMS data. Real odds are unknown, so this only checks which listed combinations are
         still reachable, assuming each deploy can improve one slot and a rolled unit competes with the slot of its
         own color. Slot order is Red, Black, Yellow.
-        <br />Last updated: Sept 30 2026, 8:00PM PST
+        <br />Last updated: Sept 30 2026, 8:37PM PST
       </footer>
     </main>
   );

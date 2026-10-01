@@ -33,16 +33,20 @@ export const PATTERNS = [
   p(W10, 'SBB', 8, WV), p(W10, 'BSB', 8, WV), p(W10, 'BBS', 8, WV),
 ];
 
-// ---- Leveling: costs 100 + 5 per current level (8->9 is 140), max level 10; points arrive at 300 per minute ----
+// ---- Leveling: costs 100 + 5 per current level (8->9 is 140), max level 10.
+// Wave 1 takes 1:30; waves 2+ are 1:00 each, while wave count still matches 300 points per wave. ----
 export const LEVEL_CAP = 10;
 export const POINTS_PER_MIN = 300;
+export const POINTS_PER_WAVE = 300;
+export const FIRST_WAVE_SECONDS = 90;
+export const LATER_WAVE_SECONDS = 60;
 export const upgradeCost = (from, to) => {
   let total = 0;
   for (let l = from; l < Math.min(to, LEVEL_CAP); l++) total += 100 + 5 * l;
   return total;
 };
 export const FULL_CLEAR_WAVE = 11;
-export const FULL_CLEAR_POINTS = FULL_CLEAR_WAVE * POINTS_PER_MIN;
+export const FULL_CLEAR_POINTS = FULL_CLEAR_WAVE * POINTS_PER_WAVE;
 export const totalSpentPoints = (deploys, levels = []) => {
   const levelCost = (levels || []).reduce((sum, level) => sum + upgradeCost(0, level), 0);
   const total = deploys * DEPLOY_COST + levelCost;
@@ -50,9 +54,14 @@ export const totalSpentPoints = (deploys, levels = []) => {
 };
 export const estimatedWaveFromPoints = (points) => {
   const clamped = Math.min(Math.max(points, 0), FULL_CLEAR_POINTS);
-  return Math.floor(clamped / POINTS_PER_MIN);
+  return Math.floor(clamped / POINTS_PER_WAVE);
 };
-const mins = (pts) => Math.max(1, Math.ceil(pts / POINTS_PER_MIN));
+const mins = (pts) => {
+  if (pts <= 0) return 0;
+  const firstWaveBoost = Math.min(pts, POINTS_PER_WAVE) * (FIRST_WAVE_SECONDS / POINTS_PER_WAVE);
+  const laterWaveBoost = Math.max(0, pts - POINTS_PER_WAVE) * (LATER_WAVE_SECONDS / POINTS_PER_WAVE);
+  return Math.max(1, Math.ceil((firstWaveBoost + laterWaveBoost) / 60));
+};
 const fmt = (n) => n.toLocaleString('en-US');
 // Target levels by rank order (best rank first; ties Red > Yellow > Black), from the post's final results
 const PLAN = new Map([[SA, [10, 9]], [SS, [10, 5]], [SS7, [10, 7]], [WV, [10, 7]], [MIN, [10, 10, 3]]]);

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { RANKS, SLOTS, evaluate, rollUnit, rollNothing } from './logic.js';
+import { RANKS, SLOTS, LEVEL_CAP, evaluate, rollUnit, rollNothing } from './logic.js';
 
 const COST = 150; // M-Force Points per deploy
 
@@ -16,16 +16,17 @@ function Combo({ ranks, gaps = [] }) {
 export default function App() {
   const [deploys, setDeploys] = useState(0);
   const [slots, setSlots] = useState(['', '', '']);
+  const [levels, setLevels] = useState([0, 0, 0]);
   const [history, setHistory] = useState([]);
   const [mode, setMode] = useState('roll');
   const [short, setShort] = useState(false);
   const [fcOnly, setFcOnly] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
-  const result = useMemo(() => evaluate(deploys, slots, short, fcOnly), [deploys, slots, short, fcOnly]);
+  const result = useMemo(() => evaluate(deploys, slots, short, fcOnly, levels), [deploys, slots, short, fcOnly, levels]);
   const shown = showAll ? result.targets : result.targets.slice(0, 6);
 
-  const snapshot = () => setHistory((h) => [...h, { deploys, slots }]);
+  const snapshot = () => setHistory((h) => [...h, { deploys, slots, levels }]);
   const roll = (i, r) => {
     snapshot();
     const next = rollUnit({ deploys, slots }, i, r);
@@ -36,9 +37,9 @@ export default function App() {
   const undo = () => {
     const last = history[history.length - 1];
     if (!last) return;
-    setDeploys(last.deploys); setSlots(last.slots); setHistory((h) => h.slice(0, -1));
+    setDeploys(last.deploys); setSlots(last.slots); setLevels(last.levels); setHistory((h) => h.slice(0, -1));
   };
-  const reset = () => { setDeploys(0); setSlots(['', '', '']); setHistory([]); };
+  const reset = () => { setDeploys(0); setSlots(['', '', '']); setLevels([0, 0, 0]); setHistory([]); };
 
   return (
     <main>
@@ -66,7 +67,7 @@ export default function App() {
 
         {mode === 'roll' && (
           <div className="row">
-            <p className="note">Tap the color and rank you rolled. It counts as a deploy and keeps the better unit. Highlighted is what you hold now.</p>
+            <p className="note">If a roll upgraded a unit, tap its color and new rank. If nothing changed, tap Rolled nothing. Each tap counts as one deploy. Highlighted is what you hold now.</p>
             <button onClick={rollNoGain}>Rolled nothing</button>
           </div>
         )}
@@ -83,6 +84,12 @@ export default function App() {
                   {r || 'Standby'}
                 </button>
               ))}
+            </div>
+            <div className="lv" role="group" aria-label={`${name} slot level`}>
+              <small>Lv</small>
+              <button onClick={() => setLevels((l) => l.map((x, j) => (j === i ? Math.max(0, x - 1) : x)))} aria-label={`${name} level down`}>−</button>
+              <output>{levels[i]}</output>
+              <button onClick={() => setLevels((l) => l.map((x, j) => (j === i ? Math.min(LEVEL_CAP, x + 1) : x)))} aria-label={`${name} level up`}>+</button>
             </div>
           </div>
         ))}

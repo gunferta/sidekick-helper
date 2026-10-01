@@ -32,8 +32,47 @@ export const PATTERNS = [
   p(W10, 'SBB', 8, WV), p(W10, 'BSB', 8, WV), p(W10, 'BBS', 8, WV),
 ];
 
+// ---- Leveling: costs 100 + 5 per current level (8->9 is 140), max level 10; points arrive at 300 per minute ----
+export const LEVEL_CAP = 10;
+export const POINTS_PER_MIN = 300;
+export const upgradeCost = (from, to) => {
+  let total = 0;
+  for (let l = from; l < Math.min(to, LEVEL_CAP); l++) total += 100 + 5 * l;
+  return total;
+};
+const mins = (pts) => Math.max(1, Math.ceil(pts / POINTS_PER_MIN));
+const fmt = (n) => n.toLocaleString('en-US');
+// Target levels by rank order (best rank first; ties Red > Yellow > Black), from the post's final results
+const PLAN = new Map([[SA, [10, 9]], [SS, [10, 5]], [SS7, [10, 7]], [WV, [10, 7]], [MIN, [10, 10, 3]]]);
+const SHORT_PLAN = [10, 10];
+const COLOR_PRIORITY = [0, 2, 1];
+
+// The S to level first: Red, then Yellow, then Black
+function levelStep(slots, levels) {
+  const i = COLOR_PRIORITY.find((c) => slots[c] === 'S');
+  if (i === undefined || !levels) return null;
+  const lv = levels[i];
+  if (lv >= LEVEL_CAP) return { i, done: true, text: `${SLOTS[i]} S is already level 10, so start rolling.` };
+  const pts = upgradeCost(lv, LEVEL_CAP);
+  return { i, done: false, text: `${SLOTS[i]} S is level ${lv}. Getting to 10 costs ${fmt(pts)} points, about ${mins(pts)} min of points.` };
+}
+
+function planLine(slots, levels, plan) {
+  if (!levels || !plan) return null;
+  const order = [0, 1, 2].sort((a, b) => V[slots[b]] - V[slots[a]] || COLOR_PRIORITY.indexOf(a) - COLOR_PRIORITY.indexOf(b));
+  const parts = [];
+  let pts = 0;
+  order.forEach((slot, k) => {
+    const target = plan[k] ?? 0;
+    if (levels[slot] < target) { pts += upgradeCost(levels[slot], target); parts.push(`${SLOTS[slot]} ${levels[slot]} to ${target}`); }
+  });
+  if (!parts.length) return 'Your levels already meet the plan. Nothing left to upgrade.';
+  return `Level-ups left: ${parts.join(', ')}. That is ${fmt(pts)} points, about ${mins(pts)} min of points.`;
+}
+
 // fcOnly: Full Clear is the only goal, so Wave 10 results are ignored and the short-on-time shortcut is off.
-export function evaluate(deploys, slots, short, fcOnly = false) {
+// levels (optional): level of the Red, Black, Yellow slots, enables the leveling advice.
+export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
   const shortMode = short && !fcOnly;
   const hasS = slots.includes('S');
   const hasA = slots.includes('A');
@@ -50,6 +89,7 @@ export function evaluate(deploys, slots, short, fcOnly = false) {
   const openFC = rows.filter((r) => r.tier === FC && r.open).sort(byDistance);
   const openW = fcOnly ? [] : rows.filter((r) => r.tier === W10 && r.open).sort(byDistance);
   const targets = [...openFC, ...openW];
+  const planNote = (plan) => planLine(slots, levels, plan);
   const out = (kind, title, lines) => ({ kind, title, lines: lines.filter(Boolean), targets });
 
   if (shortMode && deploys >= 6) {
@@ -75,11 +115,13 @@ export function evaluate(deploys, slots, short, fcOnly = false) {
     if (!hasA) {
       return out('stop', 'Stop deploying and level up', [
         'Max out the S-rank, then your next best unit.',
+        planNote(SHORT_PLAN),
         'The post only describes the S + A case, so treat the result as unconfirmed.',
       ]);
     }
     return out('stop', 'Stop deploying and level up', [
       'Max out the S-rank, then level the A-rank as far as you can.',
+      planNote(SHORT_PLAN),
       'Third member B or better: Full Clear. Otherwise you still reach Wave 10.',
     ]);
   }
@@ -89,23 +131,30 @@ export function evaluate(deploys, slots, short, fcOnly = false) {
     if (sure) {
       return out('stop', 'Full Clear locked in. Stop deploying.', [
         sure.levels,
+        planNote(PLAN.get(sure.levels)),
         'More deploys only cost you level-ups now.',
       ]);
     }
     return out('stop', 'Probably a Full Clear. Stop deploying.', [
       fc[0].levels,
+      planNote(PLAN.get(fc[0].levels)),
       `The post flags this one: ${fc[0].note}.`,
     ]);
   }
 
   if (w10.length) {
     if (deploys < 8 && openFC.length) {
-      return out('go', 'Wave 10 is secured. Keep fishing for a Full Clear.', [
+      const ls = levelStep(slots, levels);
+      const title = ls && !ls.done
+        ? `Wave 10 is secured. Level ${SLOTS[ls.i]} to 10, then keep fishing for a Full Clear.`
+        : 'Wave 10 is secured. Keep fishing for a Full Clear.';
+      return out('go', title, [
         `You can deploy up to 8 times in total without losing Wave 10 (${8 - deploys} left).`,
-        'Level the S-rank to 10 first, and leave other ranks alone until you finish deploying.',
+        ls ? ls.text : 'Level the S-rank to 10 first, and leave other ranks alone until you finish deploying.',
+        ls && 'Leave other ranks alone until you finish deploying.',
       ]);
     }
-    return out('stop', 'Wave 10 is secured. Stop deploying.', [w10[0].levels]);
+    return out('stop', 'Wave 10 is secured. Stop deploying.', [w10[0].levels, planNote(PLAN.get(w10[0].levels))]);
   }
 
   if (!hasS) {
@@ -129,8 +178,12 @@ export function evaluate(deploys, slots, short, fcOnly = false) {
   }
 
   if (targets.length) {
-    return out('go', 'Level your S-rank, then keep deploying', [
-      'Level the S-rank to 10 first. It locks in a safe Wave 7 even if the run goes badly.',
+    const ls = levelStep(slots, levels);
+    const title = !ls ? 'Level your S-rank, then keep deploying'
+      : ls.done ? `${SLOTS[ls.i]} is level 10. Start rolling.` : `Level ${SLOTS[ls.i]} to 10 before you roll again`;
+    return out('go', title, [
+      ls ? ls.text : 'Level the S-rank to 10 first. It locks in a safe Wave 7 even if the run goes badly.',
+      ls && !ls.done && 'A level 10 S locks in a safe Wave 7 even if the run goes badly. Then start rolling again.',
       'Do not level A/B ranks between deploys: level-ups are not retroactive if the slot changes rank.',
       !fcOnly && deploys > 8 && 'Past 8 deploys the Wave 10 result is gone. Only worth it to chase a Double S.',
     ]);

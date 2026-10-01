@@ -49,3 +49,6 @@ footer { font-size: .8rem; line-height: 1.5; }
 button:disabled { opacity: .4; cursor: default; }
 footer a { color: var(--go); }
 .toggle.on { background: var(--gold); color: #1a1405; border-color: var(--gold); font-weight: 700; }
+.lv { display: flex; align-items: center; gap: 6px; }
+.lv button { padding: 4px 10px; }
+.lv output { min-width: 28px; text-align: center; font-weight: 700; }

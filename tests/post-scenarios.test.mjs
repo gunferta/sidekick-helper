@@ -2,7 +2,7 @@
 // Run: npm test   (uses Node's built-in test runner, nothing to install)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluate, emptyRun, rollUnit, rollNothing } from '../src/logic.js';
+import { evaluate, emptyRun, rollUnit, rollNothing, totalSpentPoints, estimatedWaveFromPoints } from '../src/logic.js';
 
 // Build a run that holds `combo` (Red, Black, Yellow; '-' = empty) after `deploys` deploys.
 function reach(combo, deploys) {
@@ -161,6 +161,24 @@ describe('"I don\'t have 1h": short on time, about 30 minutes', () => {
     assert.match(text(v), /still reach Wave 10/);
   });
   it('6 deploys with only an A: stop and level it', () => assert.equal(verdict('A--', 6, true).kind, 'stop'));
+});
+
+describe('Points spent total', () => {
+  it('includes both deploys and level-up costs', () => {
+    assert.equal(totalSpentPoints(4, [3, 0, 7]), 4 * 150 + (100 + 5 * 0 + 100 + 5 * 1 + 100 + 5 * 2) + (100 + 5 * 0 + 100 + 5 * 1 + 100 + 5 * 2 + 100 + 5 * 3 + 100 + 5 * 4 + 100 + 5 * 5 + 100 + 5 * 6));
+  });
+  it('counts level costs from 0 to each current level', () => {
+    assert.equal(totalSpentPoints(0, [0, 1, 10]), 0 + 0 + 100 + (100 + 5 * 0 + 100 + 5 * 1 + 100 + 5 * 2 + 100 + 5 * 3 + 100 + 5 * 4 + 100 + 5 * 5 + 100 + 5 * 6 + 100 + 5 * 7 + 100 + 5 * 8 + 100 + 5 * 9));
+  });
+  it('estimates wave progress from total points spent', () => {
+    assert.equal(estimatedWaveFromPoints(0), 0);
+    assert.equal(estimatedWaveFromPoints(299), 0);
+    assert.equal(estimatedWaveFromPoints(300), 1);
+    assert.equal(estimatedWaveFromPoints(599), 1);
+    assert.equal(estimatedWaveFromPoints(600), 2);
+    assert.equal(estimatedWaveFromPoints(3300), 11);
+    assert.equal(estimatedWaveFromPoints(4000), 11);
+  });
 });
 
 describe('Roll mechanics: a worse result is not taken', () => {

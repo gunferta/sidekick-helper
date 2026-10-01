@@ -4,6 +4,7 @@
 
 export const RANKS = ['S', 'A', 'B', 'C', 'D', 'E'];
 export const SLOTS = ['Red', 'Black', 'Yellow'];
+export const DEPLOY_COST = 150;
 const V = { S: 6, A: 5, B: 4, C: 3, D: 2, E: 1, '': 0 };
 export const FC = 'Full Clear';
 export const W10 = 'Wave 10';
@@ -39,6 +40,17 @@ export const upgradeCost = (from, to) => {
   let total = 0;
   for (let l = from; l < Math.min(to, LEVEL_CAP); l++) total += 100 + 5 * l;
   return total;
+};
+export const FULL_CLEAR_WAVE = 11;
+export const FULL_CLEAR_POINTS = FULL_CLEAR_WAVE * POINTS_PER_MIN;
+export const totalSpentPoints = (deploys, levels = []) => {
+  const levelCost = (levels || []).reduce((sum, level) => sum + upgradeCost(0, level), 0);
+  const total = deploys * DEPLOY_COST + levelCost;
+  return Math.min(total, FULL_CLEAR_POINTS);
+};
+export const estimatedWaveFromPoints = (points) => {
+  const clamped = Math.min(Math.max(points, 0), FULL_CLEAR_POINTS);
+  return Math.floor(clamped / POINTS_PER_MIN);
 };
 const mins = (pts) => Math.max(1, Math.ceil(pts / POINTS_PER_MIN));
 const fmt = (n) => n.toLocaleString('en-US');
@@ -100,23 +112,17 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
       ]);
     }
     if (!hasS) {
-      // An A with no S: the post's 30-minute shortcut assumes an S to level, so it cannot finish yet.
-      if (targets.length) {
-        return out('go', 'You have an A but no S yet', [
-          'The 30-minute shortcut needs an S-rank to level, so it cannot finish this run yet.',
-          'Keep deploying while a combination is still reachable (below), or restart if you are out of time.',
-        ]);
-      }
-      return out('restart', 'Restart the minigame', [
-        'You have an A but no S, and no listed combination is still reachable.',
-        'Press the X at the top right of the minigame window to restart.',
+      return out('stop', 'Stop deploying and level up', [
+        'Max out the A-rank, then your next best unit.',
+        planNote(SHORT_PLAN),
+        'The post only describes the S + A case, so treat the result as unconfirmed.',
       ]);
     }
     if (!hasA) {
       return out('stop', 'Stop deploying and level up', [
         'Max out the S-rank, then your next best unit.',
         planNote(SHORT_PLAN),
-        'The post only describes the S + A case, so treat the result as unconfirmed.',
+        'Third member B or better: Full Clear. Otherwise you still reach Wave 10.',
       ]);
     }
     return out('stop', 'Stop deploying and level up', [

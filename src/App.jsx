@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react';
-import { RANKS, SLOTS, LEVEL_CAP, evaluate, rollUnit, rollNothing } from './logic.js';
-
-const COST = 150; // M-Force Points per deploy
+import { RANKS, SLOTS, LEVEL_CAP, evaluate, rollUnit, rollNothing, totalSpentPoints, estimatedWaveFromPoints } from './logic.js';
 
 function Combo({ ranks, gaps = [] }) {
   return (
@@ -25,6 +23,8 @@ export default function App() {
 
   const result = useMemo(() => evaluate(deploys, slots, short, fcOnly, levels), [deploys, slots, short, fcOnly, levels]);
   const shown = showAll ? result.targets : result.targets.slice(0, 6);
+  const totalSpent = totalSpentPoints(deploys, levels);
+  const estimatedWave = estimatedWaveFromPoints(totalSpent);
 
   const snapshot = () => setHistory((h) => [...h, { deploys, slots, levels }]);
   const roll = (i, r) => {
@@ -54,7 +54,10 @@ export default function App() {
             <output>{deploys}</output>
             <button onClick={() => setDeploys((d) => d + 1)} aria-label="One more deploy">+</button>
           </div>
-          <small className="cost">{(deploys * COST).toLocaleString()} points spent</small>
+          <small className="cost">
+            {totalSpent.toLocaleString()} points spent
+            {estimatedWave > 0 ? ` (~wave ${estimatedWave})` : ' (before wave 1)'}
+          </small>
         </div>
 
         <div className="row">

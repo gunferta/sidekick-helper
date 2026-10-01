@@ -10,6 +10,7 @@ React + Vite app for GitLab Pages.
 
 `npm install && npm run dev` to run locally.
 
-Push to the default branch and `.gitlab-ci.yml` builds into `public/` and publishes it.
+Deploys using `.github/workflows/deploy-pages.yml` after a merge to main. 
+
 
 Combination data lives in `src/logic.js` (PATTERNS) so it is easy to edit.

@@ -10,28 +10,30 @@ export const FC = 'Full Clear';
 export const W10 = 'Wave 10';
 
 const SA = 'Level S to 10, then A as high as you can (aim S10 + A9).';
-const SS = 'Level only the S-ranks, priority Red > Yellow > Black (aim S10 + S5).';
-const SS7 = 'Level only the S-ranks, priority Red > Yellow > Black (reported: S10 + S7).';
-const WV = 'Level S to 10, then Red > Yellow > Black (aim S10 + B7).';
+const SS = 'Level only the S-ranks, priority Red > Yellow > Black (aim S10 + S5; S10 + S7 is enough if you got it early).';
+const WV = 'Level the S-rank to 10 ASAP, then Red > Yellow > Black (aim S10 + B7).';
 const MIN = 'Level S to 10, then A to 10, then C (reported S10 + A10 + C3).';
 const p = (tier, ranks, max, levels, note = '') => ({ tier, ranks, max, levels, note });
 
 export const PATTERNS = [
-  // Full Clear: 6 deploys (by Wave 2), 7 deploys works too except Black S needs ASA
-  p(FC, 'SAB', 7, SA), p(FC, 'SBA', 7, SA), p(FC, 'ABS', 7, SA), p(FC, 'BAS', 7, SA),
-  p(FC, 'ASB', 6, SA), p(FC, 'ASA', 7, SA),
+  // Full Clear: 6 deploys (by Wave 2). "S+A+B combinations work for 7 deploys, except Black S needs ASA"
+  p(FC, 'SAB', 7, SA), p(FC, 'ABS', 7, SA), p(FC, 'BAS', 7, SA), p(FC, 'ASA', 7, SA),
+  p(FC, 'SBA', 7, SA), // no longer in the table (SCA covers it at 6) but it is an S+A+B hand, so it works at 7
+  p(FC, 'SCA', 6, SA), p(FC, 'ASB', 6, SA),
   // Full Clear, Double S: up to 10 deploys (by Wave 4)
   p(FC, 'SSB', 10, SS), p(FC, 'SBS', 10, SS), p(FC, 'BSS', 10, SS),
-  // Reported in a comment on the post ("S7 E0 S10 is also a Full Clear"); not in its tables
-  p(FC, 'SSE', 10, SS7, 'reported, not in the post tables'),
-  p(FC, 'SES', 10, SS7, 'reported, not in the post tables'),
-  p(FC, 'ESS', 10, SS7, 'reported, not in the post tables'),
   // Minimum Full Clear: 3 deploys (mid-Wave 1)
   p(FC, 'SBB', 3, SA, 'very RNG, not guaranteed'),
   p(FC, 'ASC', 3, MIN), p(FC, 'ACS', 3, MIN), p(FC, 'CAS', 3, MIN),
-  // Wave 10: up to 8 deploys (by Wave 3)
-  p(W10, 'SBB', 8, WV), p(W10, 'BSB', 8, WV), p(W10, 'BBS', 8, WV),
+  // Wave 10: 8 deploys (by Wave 3), around 14 with S Red. A star in the post means maxing that S is enough.
+  p(W10, 'SDD', 14, WV, 'maxing S Red is enough'),
+  p(W10, 'BSB', 8, WV),
+  p(W10, 'BDS', 8, WV, 'maxing S Yellow is enough'),
+  p(W10, 'DBS', 8, WV),
 ];
+
+// Deploys you can use before the Wave 10 result is lost: 8 for S Black (and Yellow), around 14 for S Red
+const w10Cap = (slots) => Math.max(8, ...PATTERNS.filter((x) => x.tier === W10 && slots[x.ranks.indexOf('S')] === 'S').map((x) => x.max));
 
 // ---- Leveling: costs 100 + 5 per current level (8->9 is 140), max level 10.
 // Wave 1 takes 1:30; waves 2+ are 1:00 each, while wave count still matches 300 points per wave. ----
@@ -64,7 +66,7 @@ const mins = (pts) => {
 };
 const fmt = (n) => n.toLocaleString('en-US');
 // Target levels by rank order (best rank first; ties Red > Yellow > Black), from the post's final results
-const PLAN = new Map([[SA, [10, 9]], [SS, [10, 5]], [SS7, [10, 7]], [WV, [10, 7]], [MIN, [10, 10, 3]]]);
+const PLAN = new Map([[SA, [10, 9]], [SS, [10, 5]], [WV, [10, 7]], [MIN, [10, 10, 3]]]);
 const SHORT_PLAN = [10, 10];
 const COLOR_PRIORITY = [0, 2, 1];
 
@@ -158,13 +160,14 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
   }
 
   if (w10.length) {
-    if (deploys < 8 && openFC.length) {
+    const cap = Math.max(...w10.map((r) => r.max));
+    if (deploys < cap && openFC.length) {
       const ls = levelStep(slots, levels);
       const title = ls && !ls.done
         ? `Wave 10 is secured. Level ${SLOTS[ls.i]} to 10, then keep fishing for a Full Clear.`
         : 'Wave 10 is secured. Keep fishing for a Full Clear.';
       return out('go', title, [
-        `You can deploy up to 8 times in total without losing Wave 10 (${8 - deploys} left).`,
+        `You can deploy ${cap > 8 ? 'around' : 'up to'} ${cap} times in total without losing Wave 10 (${cap - deploys} left).`,
         ls ? ls.text : 'Level the S-rank to 10 first, and leave other ranks alone until you finish deploying.',
         ls && 'Leave other ranks alone until you finish deploying.',
       ]);
@@ -200,7 +203,7 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
       ls ? ls.text : 'Level the S-rank to 10 first. It locks in a safe Wave 7 even if the run goes badly.',
       ls && !ls.done && 'A level 10 S locks in a safe Wave 7 even if the run goes badly. Then start rolling again.',
       'Do not level A/B ranks between deploys: level-ups are not retroactive if the slot changes rank.',
-      !fcOnly && deploys > 8 && 'Past 8 deploys the Wave 10 result is gone. Only worth it to chase a Double S.',
+      !fcOnly && deploys > w10Cap(slots) && `Past ${w10Cap(slots)} deploys the Wave 10 result is gone. Only worth it to chase a Double S.`,
     ]);
   }
 

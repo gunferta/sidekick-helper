@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { RANKS, SLOTS, LEVEL_CAP, evaluate, rollUnit, rollNothing, totalSpentPoints, estimatedWaveFromPoints } from './logic.js';
+import { gitCommitTime } from './generated/git-info.js';
 
 function Combo({ ranks, gaps = [] }) {
   return (
@@ -40,6 +41,9 @@ export default function App() {
     setDeploys(last.deploys); setSlots(last.slots); setLevels(last.levels); setHistory((h) => h.slice(0, -1));
   };
   const reset = () => { setDeploys(0); setSlots(['', '', '']); setLevels([0, 0, 0]); setHistory([]); };
+  const lastUpdatedText = new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles', timeZoneName: 'short',
+  }).format(new Date(gitCommitTime));
 
   return (
     <main>
@@ -148,7 +152,7 @@ export default function App() {
         , which uses MapleSEA/TMS data. Real odds are unknown, so this only checks which listed combinations are
         still reachable, assuming each deploy can improve one slot and a rolled unit competes with the slot of its
         own color. Slot order is Red, Black, Yellow.
-        <br />Last updated: Sept 30 2026, 8:37PM PST
+        <br />Last updated: {lastUpdatedText}
       </footer>
     </main>
   );

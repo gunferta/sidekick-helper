@@ -42,7 +42,7 @@ export default function App() {
   };
   const reset = () => { setDeploys(0); setSlots(['', '', '']); setLevels([0, 0, 0]); setHistory([]); };
   const lastUpdatedText = new Intl.DateTimeFormat('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles', timeZoneName: 'short',
+    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
   }).format(new Date(gitCommitTime));
 
   return (

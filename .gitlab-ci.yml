@@ -1,0 +1,10 @@
+pages:
+  image: node:20
+  script:
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

@@ -48,3 +48,4 @@ footer { font-size: .8rem; line-height: 1.5; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 button:disabled { opacity: .4; cursor: default; }
 footer a { color: var(--go); }
+.toggle.on { background: var(--gold); color: #1a1405; border-color: var(--gold); font-weight: 700; }

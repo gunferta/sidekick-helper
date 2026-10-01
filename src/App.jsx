@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
-import { RANKS, SLOTS, evaluate } from './logic.js';
+import { RANKS, SLOTS, evaluate, rollUnit, rollNothing } from './logic.js';
 
-const ORDER = { '': 0, E: 1, D: 2, C: 3, B: 4, A: 5, S: 6 };
 const COST = 150; // M-Force Points per deploy
 
 function Combo({ ranks, gaps = [] }) {
@@ -20,19 +19,19 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [mode, setMode] = useState('roll');
   const [short, setShort] = useState(false);
+  const [fcOnly, setFcOnly] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
-  const result = useMemo(() => evaluate(deploys, slots, short), [deploys, slots, short]);
+  const result = useMemo(() => evaluate(deploys, slots, short, fcOnly), [deploys, slots, short, fcOnly]);
   const shown = showAll ? result.targets : result.targets.slice(0, 6);
 
   const snapshot = () => setHistory((h) => [...h, { deploys, slots }]);
-  // A roll costs a deploy, and the game keeps the better of the old and new unit.
   const roll = (i, r) => {
     snapshot();
-    setDeploys((d) => d + 1);
-    setSlots((s) => s.map((x, j) => (j === i && ORDER[r] > ORDER[x] ? r : x)));
+    const next = rollUnit({ deploys, slots }, i, r);
+    setDeploys(next.deploys); setSlots(next.slots);
   };
-  const rollNoGain = () => { snapshot(); setDeploys((d) => d + 1); };
+  const rollNoGain = () => { snapshot(); setDeploys(rollNothing({ deploys, slots }).deploys); };
   const edit = (i, r) => setSlots((s) => s.map((x, j) => (j === i ? r : x)));
   const undo = () => {
     const last = history[history.length - 1];
@@ -90,13 +89,17 @@ export default function App() {
 
         <div className="row foot">
           <label className="check">
-            <input type="checkbox" checked={short} onChange={(e) => setShort(e.target.checked)} />
+            <input type="checkbox" checked={short && !fcOnly} disabled={fcOnly} onChange={(e) => setShort(e.target.checked)} />
             Short on time (about 30 minutes)
           </label>
           <div className="actions">
+            <button className={`toggle${fcOnly ? ' on' : ''}`} aria-pressed={fcOnly} onClick={() => setFcOnly((v) => !v)}>
+              Full Clear only: {fcOnly ? 'On' : 'Off'}
+            </button>
             <button className="ghost" onClick={reset}>New run</button>
           </div>
         </div>
+        {fcOnly && <p className="note">Wave 10 results are ignored. It keeps you deploying while a Full Clear is still reachable.</p>}
       </section>
 
       <section className={`verdict ${result.kind}`} aria-live="polite">
@@ -135,6 +138,7 @@ export default function App() {
         , which uses MapleSEA/TMS data. Real odds are unknown, so this only checks which listed combinations are
         still reachable, assuming each deploy can improve one slot and a rolled unit competes with the slot of its
         own color. Slot order is Red, Black, Yellow.
+        <br />Last updated: Sept 30 2026, 8:00PM PST
       </footer>
     </main>
   );

@@ -10,6 +10,7 @@ export const W10 = 'Wave 10';
 
 const SA = 'Level S to 10, then A as high as you can (aim S10 + A9).';
 const SS = 'Level only the S-ranks, priority Red > Yellow > Black (aim S10 + S5).';
+const SS7 = 'Level only the S-ranks, priority Red > Yellow > Black (reported: S10 + S7).';
 const WV = 'Level S to 10, then Red > Yellow > Black (aim S10 + B7).';
 const MIN = 'Level S to 10, then A to 10, then C (reported S10 + A10 + C3).';
 const p = (tier, ranks, max, levels, note = '') => ({ tier, ranks, max, levels, note });
@@ -20,6 +21,10 @@ export const PATTERNS = [
   p(FC, 'ASB', 6, SA), p(FC, 'ASA', 7, SA),
   // Full Clear, Double S: up to 10 deploys (by Wave 4)
   p(FC, 'SSB', 10, SS), p(FC, 'SBS', 10, SS), p(FC, 'BSS', 10, SS),
+  // Reported in a comment on the post ("S7 E0 S10 is also a Full Clear"); not in its tables
+  p(FC, 'SSE', 10, SS7, 'reported, not in the post tables'),
+  p(FC, 'SES', 10, SS7, 'reported, not in the post tables'),
+  p(FC, 'ESS', 10, SS7, 'reported, not in the post tables'),
   // Minimum Full Clear: 3 deploys (mid-Wave 1)
   p(FC, 'SBB', 3, SA, 'very RNG, not guaranteed'),
   p(FC, 'ASC', 3, MIN), p(FC, 'ACS', 3, MIN), p(FC, 'CAS', 3, MIN),
@@ -27,7 +32,9 @@ export const PATTERNS = [
   p(W10, 'SBB', 8, WV), p(W10, 'BSB', 8, WV), p(W10, 'BBS', 8, WV),
 ];
 
-export function evaluate(deploys, slots, short) {
+// fcOnly: Full Clear is the only goal, so Wave 10 results are ignored and the short-on-time shortcut is off.
+export function evaluate(deploys, slots, short, fcOnly = false) {
+  const shortMode = short && !fcOnly;
   const hasS = slots.includes('S');
   const hasA = slots.includes('A');
 
@@ -39,13 +46,13 @@ export function evaluate(deploys, slots, short) {
   });
   const byDistance = (a, b) => a.gaps.length - b.gaps.length || b.left - a.left;
   const fc = rows.filter((r) => r.tier === FC && r.done);
-  const w10 = rows.filter((r) => r.tier === W10 && r.done);
+  const w10 = fcOnly ? [] : rows.filter((r) => r.tier === W10 && r.done);
   const openFC = rows.filter((r) => r.tier === FC && r.open).sort(byDistance);
-  const openW = rows.filter((r) => r.tier === W10 && r.open).sort(byDistance);
+  const openW = fcOnly ? [] : rows.filter((r) => r.tier === W10 && r.open).sort(byDistance);
   const targets = [...openFC, ...openW];
   const out = (kind, title, lines) => ({ kind, title, lines: lines.filter(Boolean), targets });
 
-  if (short && deploys >= 6) {
+  if (shortMode && deploys >= 6) {
     if (!hasS && !hasA) {
       return out('restart', 'Restart the minigame', [
         'No S or A after 6 deploys, so this run is not worth finishing.',
@@ -59,9 +66,16 @@ export function evaluate(deploys, slots, short) {
   }
 
   if (fc.length) {
-    return out('stop', 'Full Clear locked in. Stop deploying.', [
+    const sure = fc.find((r) => !r.note);
+    if (sure) {
+      return out('stop', 'Full Clear locked in. Stop deploying.', [
+        sure.levels,
+        'More deploys only cost you level-ups now.',
+      ]);
+    }
+    return out('stop', 'Probably a Full Clear. Stop deploying.', [
       fc[0].levels,
-      'More deploys only cost you level-ups now.',
+      `The post flags this one: ${fc[0].note}.`,
     ]);
   }
 
@@ -99,7 +113,14 @@ export function evaluate(deploys, slots, short) {
     return out('go', 'Level your S-rank, then keep deploying', [
       'Level the S-rank to 10 first. It locks in a safe Wave 7 even if the run goes badly.',
       'Do not level A/B ranks between deploys: level-ups are not retroactive if the slot changes rank.',
-      deploys > 8 && 'Past 8 deploys the Wave 10 result is gone. Only worth it to chase a Double S.',
+      !fcOnly && deploys > 8 && 'Past 8 deploys the Wave 10 result is gone. Only worth it to chase a Double S.',
+    ]);
+  }
+
+  if (fcOnly) {
+    return out('restart', 'No Full Clear is reachable. Restart the minigame.', [
+      'Press the X at the top right of the minigame window to restart.',
+      'To gamble instead, the post says deploying as much as possible keeps a chance at a double or triple S.',
     ]);
   }
 
@@ -108,3 +129,13 @@ export function evaluate(deploys, slots, short) {
     'Level the S-rank first, then see the run through.',
   ]);
 }
+
+// ---- Roll mechanics (mirrors the game: a worse result is not taken) ----
+export const ORDER = { '': 0, E: 1, D: 2, C: 3, B: 4, A: 5, S: 6 };
+export const emptyRun = () => ({ deploys: 0, slots: ['', '', ''] });
+// Every roll costs a deploy; the slot of the rolled color keeps the better unit.
+export const rollUnit = (run, i, rank) => ({
+  deploys: run.deploys + 1,
+  slots: run.slots.map((x, j) => (j === i && ORDER[rank] > ORDER[x] ? rank : x)),
+});
+export const rollNothing = (run) => ({ deploys: run.deploys + 1, slots: [...run.slots] });

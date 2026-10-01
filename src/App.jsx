@@ -42,8 +42,8 @@ export default function App() {
 
   return (
     <main>
-      <h1>Go Go Sidekick helper</h1>
-      <p className="sub">Log each roll and it tells you whether to keep going.</p>
+      <h1>MapleStory Go Go Sidekick Helper</h1>
+      <p className="sub">Log each roll and it tells you if you should keep going or reset.</p>
 
       <section className="panel">
         <div className="row">
@@ -90,7 +90,7 @@ export default function App() {
         <div className="row foot">
           <label className="check">
             <input type="checkbox" checked={short && !fcOnly} disabled={fcOnly} onChange={(e) => setShort(e.target.checked)} />
-            Short on time (about 30 minutes)
+            Short on time
           </label>
           <div className="actions">
             <button className={`toggle${fcOnly ? ' on' : ''}`} aria-pressed={fcOnly} onClick={() => setFcOnly((v) => !v)}>
@@ -99,7 +99,7 @@ export default function App() {
             <button className="ghost" onClick={reset}>New run</button>
           </div>
         </div>
-        {fcOnly && <p className="note">Wave 10 results are ignored. It keeps you deploying while a Full Clear is still reachable.</p>}
+        {fcOnly && <p className="note">Wave 10 results are ignored. It tells you to keep going while a Full Clear is still reachable.</p>}
       </section>
 
       <section className={`verdict ${result.kind}`} aria-live="polite">

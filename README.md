@@ -1,4 +1,6 @@
-# Go Go Sidekick helper
+# MapleStory Go Go Sidekick 
+Source: https://www.reddit.com/r/Maplestory/comments/1wu7hyv/go_go_sidekick_winning_combinations/
+Written purely by AI. May not be 100% accurate. 
 
 React + Vite app for GitLab Pages. `npm install && npm run dev` to run locally.
 Push to the default branch and `.gitlab-ci.yml` builds into `public/` and publishes it.

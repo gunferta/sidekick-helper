@@ -2,7 +2,7 @@
 // Run: npm test   (uses Node's built-in test runner, nothing to install)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluate, emptyRun, rollUnit, rollNothing, upgradeCost, totalSpentPoints, estimatedWaveFromPoints } from '../src/logic.js';
+import { SLOTS, evaluate, emptyRun, rollUnit, rollNothing, upgradeCost, totalSpentPoints, estimatedWaveFromPoints } from '../src/logic.js';
 
 // Build a run that holds `combo` (Red, Black, Yellow; '-' = empty) after `deploys` deploys.
 function reach(combo, deploys) {
@@ -21,21 +21,39 @@ const fullClear = (v) => v.kind === 'stop' && v.title.startsWith('Full Clear loc
 const wave10Secured = (v) => v.title.startsWith('Wave 10 is secured');
 
 describe('Full Clear: 6 deploys, by Wave 2', () => {
-  for (const combo of ['SAB', 'SCA', 'ASB', 'ABS', 'BAS']) {
-    it(`${combo} at 6 deploys is a Full Clear: stop, level S then A`, () => {
+  // The advice names the real color and rank of each unit you hold
+  const fc6 = {
+    SAC: 'Level Red S to 10, then Black A to 9 (aim S10 + A9).',
+    SCA: 'Level Red S to 10, then Yellow A to 9 (aim S10 + A9).',
+    ASB: 'Level Black S to 10, then Red A to 9 (aim S10 + A9).',
+    ACS: 'Level Yellow S to 10, then Red A to 9 (aim S10 + A9).',
+    BAS: 'Level Yellow S to 10, then Black A to 9 (aim S10 + A9).',
+  };
+  for (const [combo, advice] of Object.entries(fc6)) {
+    it(`${combo} at 6 deploys is a Full Clear: stop, ${advice}`, () => {
       const v = verdict(combo, 6);
       assert.ok(fullClear(v), text(v));
-      assert.match(text(v), /Level S to 10, then A/);
-      assert.match(text(v), /S10 \+ A9/);
+      assert.ok(text(v).includes(advice), text(v));
     });
     it(`${combo} earlier than 6 deploys: stop deploying immediately`, () => {
       assert.ok(fullClear(verdict(combo, 4)));
     });
   }
+  it('SAB at 6 deploys uses its own 7-deploy plan (S10 + A8)', () => {
+    const v = verdict('SAB', 6);
+    assert.ok(fullClear(v));
+    assert.ok(text(v).includes('Level Red S to 10, then Black A to 8 (aim S10 + A8).'), text(v));
+  });
   it('is no longer a Full Clear well past 7 deploys', () => {
     assert.ok(!fullClear(verdict('SAB', 9)));
   });
   it('SBA also works at 6 deploys (it beats SCA)', () => assert.ok(fullClear(verdict('SBA', 6))));
+  it('BSA at 6 deploys is flagged: extremely tight, collect points and upgrade on time', () => {
+    const v = verdict('BSA', 6);
+    assert.equal(v.kind, 'stop');
+    assert.match(v.title, /^Probably a Full Clear/);
+    assert.match(text(v), /extremely tight/);
+  });
 });
 
 describe('Full Clear: 7 deploys, by mid-Wave 3', () => {
@@ -48,7 +66,18 @@ describe('Full Clear: 7 deploys, by mid-Wave 3', () => {
     assert.ok(!fullClear(v));
     assert.ok(wave10Secured(v), text(v));
   });
-  it('Black S needs ASA at 7 deploys', () => assert.ok(fullClear(verdict('ASA', 7))));
+  for (const combo of ['SAB', 'SBA', 'ABS', 'BAS']) {
+    it(`${combo} at 7 deploys: S10 + A8`, () => assert.match(text(verdict(combo, 7)), /S10 \+ A8/));
+  }
+  it('SAC (A with a C) only works up to 6 deploys', () => {
+    assert.ok(fullClear(verdict('SAC', 6)));
+    assert.ok(!fullClear(verdict('SAC', 7)));
+  });
+  it('Black S needs ASA at 7 deploys, leveling Red before Yellow', () => {
+    const v = verdict('ASA', 7);
+    assert.ok(fullClear(v));
+    assert.ok(text(v).includes('Level Black S to 10, then Red A to 8 (aim S10 + A8).'), text(v));
+  });
   it('ASB is NOT a Full Clear at 7 deploys (but still reaches Wave 10)', () => {
     const v = verdict('ASB', 7);
     assert.ok(!fullClear(v));
@@ -57,15 +86,21 @@ describe('Full Clear: 7 deploys, by mid-Wave 3', () => {
 });
 
 describe('Full Clear Double S: 10 deploys, by Wave 4', () => {
-  for (const combo of ['SSB', 'SBS', 'BSS']) {
+  const doubleS = {
+    SSB: 'Level Red S to 10, then Black S to 5 (aim S10 + S5).',
+    SBS: 'Level Red S to 10, then Yellow S to 5 (aim S10 + S5).',
+    BSS: 'Level Yellow S to 10, then Black S to 5 (aim S10 + S5).',
+  };
+  for (const [combo, advice] of Object.entries(doubleS)) {
     it(`${combo} at 10 deploys is a Full Clear, leveling Red > Yellow > Black`, () => {
       const v = verdict(combo, 10);
       assert.ok(fullClear(v), text(v));
-      assert.match(text(v), /Red > Yellow > Black/);
-      assert.match(text(v), /S10 \+ S5/);
+      assert.ok(text(v).includes(advice), text(v));
     });
-    it(`${combo} earlier than 10 deploys: stop deploying`, () => {
-      assert.ok(fullClear(verdict(combo, 5)));
+    it(`${combo} earlier than 10 deploys: stop deploying, S10 + S7 is enough`, () => {
+      const v = verdict(combo, 5);
+      assert.ok(fullClear(v));
+      assert.match(text(v), /S10 \+ S7 is enough/);
     });
     it(`${combo} is not a Full Clear after 10 deploys`, () => {
       assert.ok(!fullClear(verdict(combo, 11)));
@@ -77,11 +112,16 @@ describe('Full Clear Double S: 10 deploys, by Wave 4', () => {
 });
 
 describe('Wave 10: 8 deploys, by Wave 3 (around 14 with S Red)', () => {
-  for (const combo of ['BSB', 'BDS', 'DBS']) {
-    it(`${combo} at 8 deploys: Wave 10 secured, stop, aim S10 + B7`, () => {
+  const wave10 = {
+    BSB: 'Level Black S to 10, then Red B to 7 (aim S10 + B7).',
+    DBS: 'Level Yellow S to 10, then Black B to 7 (aim S10 + B7).',
+    BDS: 'Level Yellow S to 10 (aim S10).', // starred: maxing S Yellow is enough
+  };
+  for (const [combo, advice] of Object.entries(wave10)) {
+    it(`${combo} at 8 deploys: Wave 10 secured, stop. ${advice}`, () => {
       const v = verdict(combo, 8);
       assert.ok(wave10Secured(v) && v.kind === 'stop', text(v));
-      assert.match(text(v), /S10 \+ B7/);
+      assert.ok(text(v).includes(advice), text(v));
     });
     it(`${combo} earlier: keep fishing for a Full Clear, up to 8 deploys total`, () => {
       const v = verdict(combo, 5);
@@ -117,25 +157,48 @@ describe('Wave 10: 8 deploys, by Wave 3 (around 14 with S Red)', () => {
   });
 });
 
-describe('Minimum Full Clear: 3 deploys, by mid-Wave 1', () => {
-  for (const combo of ['ASC', 'ACS', 'CAS']) {
-    it(`${combo} at 3 deploys is a Full Clear: S10 + A10 + C3`, () => {
-      const v = verdict(combo, 3);
+describe('Min Full Clear: 5 deploys, by Wave 2', () => {
+  const min5 = {
+    SDA: 'Level Red S to 10, then Yellow A to 10, then Black D to 1 (aim S10 + A10 + D1).',
+    ASC: 'Level Black S to 10, then Red A to 10, then Yellow C to 1 (aim S10 + A10 + C1).',
+    ACS: 'Level Yellow S to 10, then Red A to 10, then Black C to 1 (aim S10 + A10 + C1).',
+    BSA: 'Level Black S to 10, then Yellow A to 10, then Red B to 1 (aim S10 + A10 + B1).',
+    BAS: 'Level Yellow S to 10, then Black A to 10, then Red B to 1 (aim S10 + A10 + B1).',
+  };
+  for (const [combo, advice] of Object.entries(min5)) {
+    it(`${combo} at 5 deploys is a Full Clear: ${advice}`, () => {
+      const v = verdict(combo, 5);
       assert.ok(fullClear(v), text(v));
-      assert.match(text(v), /A to 10/);
-      assert.match(text(v), /C3/);
+      assert.ok(text(v).includes(advice), text(v));
     });
-    it(`${combo} at 4 deploys is no longer a Full Clear`, () => assert.ok(!fullClear(verdict(combo, 4))));
   }
-  it('CSA is not claimed (the post is unsure it is possible)', () => {
-    const v = verdict('CSA', 3);
-    assert.notEqual(v.kind, 'stop');
+  it('SAE is flagged: may not be a guaranteed clear', () => {
+    const v = verdict('SAE', 5);
+    assert.equal(v.kind, 'stop');
+    assert.match(v.title, /^Probably a Full Clear/);
+    assert.match(text(v), /guaranteed/);
   });
-  it('SBB at 3 deploys is flagged as RNG, not guaranteed', () => {
+  it('SDA is no longer a Full Clear at 6 deploys', () => assert.ok(!fullClear(verdict('SDA', 6))));
+  it('CAS (dropped from the tables) is not claimed', () => assert.ok(!fullClear(verdict('CAS', 5))));
+  it('CSA is not claimed', () => assert.notEqual(verdict('CSA', 5).kind, 'stop'));
+});
+
+describe('Extreme Min Full Clear: 3 deploys, by Wave 1', () => {
+  it('SBB at 3 deploys is flagged as extremely RNG; level Red, then Black, then Yellow', () => {
     const v = verdict('SBB', 3);
     assert.equal(v.kind, 'stop');
     assert.match(v.title, /^Probably a Full Clear/);
-    assert.match(text(v), /not guaranteed/);
+    assert.match(text(v), /not a guaranteed clear/);
+    assert.match(text(v), /S10 \+ B10 \+ B3/);
+  });
+  it('SBB at 4 deploys is no longer a Full Clear', () => {
+    const v = verdict('SBB', 4);
+    assert.ok(!fullClear(v) && !/^Probably/.test(v.title), v.title);
+  });
+  it('plan shows Red 10, Black 10, Yellow 3 (Black before Yellow)', () => {
+    const run = reach('SBB', 3);
+    const v = evaluate(run.deploys, run.slots, false, false, [0, 0, 0]);
+    assert.match(text(v), /Red S 0 to 10, Black B 0 to 10, Yellow B 0 to 3/);
   });
 });
 
@@ -178,14 +241,29 @@ describe('Strategy from the post', () => {
 describe('"I don\'t have 1h": short on time, about 30 minutes', () => {
   it('6 deploys with no S or A: restart', () => assert.equal(verdict('BBB', 6, true).kind, 'restart'));
   it('5 deploys with no S or A: not yet', () => assert.equal(verdict('BBB', 5, true).kind, 'go'));
-  it('6 deploys with an S: stop, max S then A, third B+ means Full Clear', () => {
-    const v = verdict('SCC', 6, true);
+  it('6 deploys with S + A: stop, max S then A, third B+ means Full Clear', () => {
+    const v = verdict('SDA', 6, true);
     assert.equal(v.kind, 'stop');
     assert.match(text(v), /Max out the S-rank/);
     assert.match(text(v), /B or better: Full Clear/);
     assert.match(text(v), /still reach Wave 10/);
   });
-  it('6 deploys with only an A: stop and level it', () => assert.equal(verdict('A--', 6, true).kind, 'stop'));
+  it('6 deploys with S + S: stop, max the first S, second S to 5+', () => {
+    const v = verdict('SSC', 6, true);
+    assert.equal(v.kind, 'stop');
+    assert.match(text(v), /second S to 5 or more/);
+  });
+  it('6 deploys with only one S: still finish the run (General Strategy), level the S first', () => {
+    const v = verdict('SCC', 6, true);
+    assert.notEqual(v.kind, 'stop');
+    assert.match(text(v), /only have one S/);
+    assert.match(text(v), /General Strategy/);
+  });
+  it('6 deploys with an A but no S: restart (needs S+A or S+S)', () => {
+    const v = verdict('A--', 6, true);
+    assert.equal(v.kind, 'restart');
+    assert.match(text(v), /S\+A or S\+S/);
+  });
 });
 
 describe('Points spent total', () => {
@@ -287,8 +365,8 @@ describe('Full Clear only mode', () => {
     assert.ok(fullClear(verdict('SSB', 10, false, true)));
   });
   it('turns off the short-on-time shortcut', () => {
-    assert.equal(verdict('SCC', 6, true).kind, 'stop');
-    assert.equal(verdict('SCC', 6, true, true).kind, 'go');
+    assert.equal(verdict('SDA', 6, true).kind, 'stop');
+    assert.equal(verdict('SDA', 6, true, true).kind, 'go');
   });
   it('never reports Wave 10 for any state', () => {
     const opts = ['', 'E', 'D', 'C', 'B', 'A', 'S'];
@@ -340,17 +418,76 @@ describe('Level tracking', () => {
     assert.equal(v.kind, 'go');
     assert.match(v.title, /^Wave 10 is secured\. Level Red to 10/);
   });
-  it('Full Clear locked in: shows the level-ups left for the plan (S10 + A9)', () => {
+  it('Full Clear locked in: shows the level-ups left for the plan (SAB: S10 + A8)', () => {
     const v = withLevels('SAB', 6, [0, 0, 0]);
     assert.ok(fullClear(v));
-    assert.match(text(v), /Red 0 to 10, Black 0 to 9/);
-    assert.match(text(v), /2,305 points/);
+    assert.match(text(v), /Red S 0 to 10, Black A 0 to 8/);
+    assert.match(text(v), /2,165 points/);
   });
   it('plan already met', () => {
     assert.match(text(withLevels('SAB', 6, [10, 9, 0])), /already meet the plan/);
   });
-  it('Wave 10 plan is S10 + B7, Double S plan is S10 + S5', () => {
-    assert.match(text(withLevels('SBB', 12, [0, 0, 0])), /Red 0 to 10, Yellow 0 to 7/); // ties: Red > Yellow > Black
-    assert.match(text(withLevels('SSB', 10, [0, 0, 0])), /Red 0 to 10, Black 0 to 5/);
+  it('Wave 10 plans name the real units: S10 + B7, or just S10 when maxing S is enough', () => {
+    assert.match(text(withLevels('BSB', 8, [0, 0, 0])), /Black S 0 to 10, Red B 0 to 7/);
+    const star = text(withLevels('SBB', 12, [0, 0, 0]));
+    assert.match(star, /Red S 0 to 10/);
+    assert.doesNotMatch(star, /B 0 to/);
+  });
+  it('Double S plan is S10 + S5', () => {
+    assert.match(text(withLevels('SSB', 10, [0, 0, 0])), /Red S 0 to 10, Black S 0 to 5/);
+  });
+});
+
+describe('Level advice only names units you actually hold', () => {
+  const ranks = ['', 'E', 'D', 'C', 'B', 'A', 'S'];
+  // Returns what is wrong with the advice for this hand, if anything
+  function problems(slots, t) {
+    const found = [];
+    const held = slots.filter(Boolean);
+    for (const m of t.matchAll(/\b(Red|Black|Yellow) ([SABCDE])\b/g)) {
+      if (slots[SLOTS.indexOf(m[1])] !== m[2]) found.push(`says ${m[1]} ${m[2]} but ${m[1]} is ${slots[SLOTS.indexOf(m[1])] || 'empty'}`);
+    }
+    const aim = t.match(/\(aim ([^)]*)\)/);
+    if (aim) {
+      const pool = [...held];
+      for (const m of aim[1].matchAll(/([SABCDE])\d+/g)) {
+        const i = pool.indexOf(m[1]);
+        i === -1 ? found.push(`aims for ${m[1]} without holding one`) : pool.splice(i, 1);
+      }
+    }
+    if (/A-rank/.test(t) && !held.includes('A')) found.push('mentions the A-rank without an A');
+    if (/second S/.test(t) && held.filter((x) => x === 'S').length < 2) found.push('mentions a second S without two S');
+    return found;
+  }
+  it('holds for every deploy count, every hand, with and without level info, normal and short mode', () => {
+    const bad = [];
+    for (const short of [false, true]) for (const lv of [null, [0, 0, 0]]) for (let d = 0; d <= 16; d++)
+      for (const a of ranks) for (const b of ranks) for (const c of ranks) {
+        const slots = [a, b, c];
+        const v = evaluate(d, slots, short, false, lv);
+        const found = problems(slots, v.lines.join(' '));
+        if (found.length) bad.push(`${short ? 'short ' : ''}d=${d} ${slots.join('') || '-'}: ${found[0]}`);
+      }
+    assert.equal(bad.length, 0, bad.slice(0, 5).join('\n'));
+  });
+  it('S + S + B never mentions an A', () => {
+    const v = verdict('BSS', 6);
+    assert.ok(fullClear(v));
+    assert.doesNotMatch(text(v), /\bA\d|A-rank|\bA to/);
+    assert.ok(text(v).includes('Level Yellow S to 10, then Black S to 5 (aim S10 + S5).'), text(v));
+  });
+  it('S Red with D, D never mentions a B', () => {
+    const v = verdict('SDD', 8);
+    assert.doesNotMatch(text(v), /\bB\d|B-rank/);
+  });
+  it('a stronger rank than the table lists is named by its real rank (DAS holds an A, not a B)', () => {
+    const v = verdict('DAS', 8);
+    assert.ok(text(v).includes('Level Yellow S to 10, then Black A to 7 (aim S10 + A7).'), text(v));
+  });
+  it('short mode with S + S + A levels the second S, not the A', () => {
+    const v = verdict('SSA', 6, true);
+    assert.equal(v.kind, 'stop');
+    assert.ok(text(v).includes('Level Red S to 10, then Black S to 5'), text(v));
+    assert.doesNotMatch(text(v), /A-rank/);
   });
 });

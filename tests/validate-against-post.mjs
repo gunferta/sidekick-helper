@@ -4,13 +4,14 @@ import { PATTERNS, evaluate } from '../src/logic.js';
 
 // ---- Transcribed from the post (columns: S Red / S Black / S Yellow) ----
 const post = {
-  fullClear6: { Red: ['SAB', 'SCA'], Black: ['ASB'], Yellow: ['ABS', 'BAS'] },
-  // "S+A+B combinations work for 7 Deploys, except for S-Rank Black which will need ASA"
+  minFull5: { Red: ['SDA', 'SAE'], Black: ['ASC', 'BSA'], Yellow: ['ACS', 'BAS'] },
+  fullClear6: { Red: ['SAC', 'SCA'], Black: ['ASB', 'BSA'], Yellow: ['ACS', 'BAS'] },
   fullClear7: { Red: ['SAB', 'SBA'], Black: ['ASA'], Yellow: ['ABS', 'BAS'] },
   doubleS10: { Red: ['SSB', 'SBS'], Black: ['SSB', 'BSS'], Yellow: ['BSS', 'SBS'] },
   wave10: { Red: ['SDD'], Black: ['BSB'], Yellow: ['BDS', 'DBS'] },
-  minFull3: { Red: ['SBB'], Black: ['ASC'], Yellow: ['ACS', 'CAS'] }, // CSA unsure, excluded
+  extremeMin3: { Red: ['SBB'] },
 };
+const fullClearTables = { minFull5: 5, fullClear6: 6, fullClear7: 7, doubleS10: 10, extremeMin3: 3 };
 // "8 for S-Black, around 14 if you have S-Red" (Yellow is not stated, so 8)
 const wave10Cap = { Red: 14, Black: 8, Yellow: 8 };
 const COL = { Red: 0, Black: 1, Yellow: 2 };
@@ -27,28 +28,19 @@ for (const [tbl, cols] of Object.entries(post))
 const expected = new Set();
 const add = (tier, ranks, max) => expected.add(`${tier}|${ranks}|${max}`);
 const all = (t) => Object.values(t).flat();
-for (const c of new Set([...all(post.fullClear6), ...all(post.fullClear7)]))
-  add('Full Clear', c, all(post.fullClear7).includes(c) ? 7 : 6);
-all(post.doubleS10).forEach((c) => add('Full Clear', c, 10));
-all(post.minFull3).forEach((c) => add('Full Clear', c, 3));
+for (const [tbl, cap] of Object.entries(fullClearTables)) all(post[tbl]).forEach((c) => add('Full Clear', c, cap));
 for (const [col, list] of Object.entries(post.wave10)) list.forEach((c) => add('Wave 10', c, wave10Cap[col]));
 const actual = new Set(PATTERNS.map((x) => `${x.tier}|${x.ranks}|${x.max}`));
 for (const e of expected) ok(actual.has(e), `missing from app: ${e}`);
 for (const a of actual) ok(expected.has(a), `in app but not in post tables: ${a}`);
 console.log(`tables: ${expected.size} post combos checked against ${actual.size} app patterns`);
 
-// 2b. SBB is a Min Full Clear (3 deploys); as a Wave 10 hand it is covered by SDD (it beats it)
-ok(PATTERNS.some((x) => x.ranks === 'SBB' && x.tier === 'Full Clear' && x.max === 3), 'SBB min FC');
 
 // 3. Exhaustive: every deploy count 0-16 x every slot state, vs an oracle built from the tables
 const R = '-EDCBAS'; // '-' = empty
 const val = (r) => R.indexOf(r === '' ? '-' : r);
 const dom = (slots, combo) => combo.split('').every((r, i) => val(slots[i]) >= val(r));
-const fcList = [
-  ...[...new Set([...all(post.fullClear6), ...all(post.fullClear7)])].map((c) => [c, all(post.fullClear7).includes(c) ? 7 : 6]),
-  ...all(post.doubleS10).map((c) => [c, 10]),
-  ...all(post.minFull3).map((c) => [c, 3]),
-];
+const fcList = Object.entries(fullClearTables).flatMap(([tbl, cap]) => all(post[tbl]).map((c) => [c, cap]));
 const wList = Object.entries(post.wave10).flatMap(([col, list]) => list.map((c) => [c, wave10Cap[col]]));
 const label = (r) => (r.kind === 'stop' && /Full Clear/.test(r.title) ? 'FC' : /^Wave 10/.test(r.title) ? 'W10' : 'none');
 const opts = ['', 'E', 'D', 'C', 'B', 'A', 'S'];
@@ -66,21 +58,27 @@ console.log(`exhaustive: ${cases} states (deploys 0-16 x 343 slot combos)`);
 
 // 4. Scenarios stated in the post's text
 const ev = (d, s, short = false) => evaluate(d, s, short);
-ok(label(ev(6, ['S', 'A', 'B'])) === 'FC', 'SAB at 6 = Full Clear');
+ok(label(ev(6, ['S', 'A', 'B'])) === 'FC', 'SAB at 6 = Full Clear (it beats SAC)');
 ok(label(ev(6, ['S', 'C', 'A'])) === 'FC' && label(ev(7, ['S', 'C', 'A'])) !== 'FC', 'SCA works at 6 deploys only');
-ok(label(ev(7, ['S', 'B', 'A'])) === 'FC', 'SBA (an S+A+B hand) works at 7');
+ok(label(ev(7, ['S', 'A', 'B'])) === 'FC' && label(ev(7, ['S', 'B', 'A'])) === 'FC', 'S+A+B works at 7 (SAB, SBA)');
+ok(label(ev(7, ['S', 'A', 'C'])) !== 'FC', 'SAC only works up to 6');
 ok(label(ev(7, ['A', 'S', 'B'])) !== 'FC', 'ASB at 7 is NOT a Full Clear (needs ASA)');
 ok(label(ev(7, ['A', 'S', 'B'])) === 'W10', 'ASB at 7 still reaches Wave 10');
 ok(label(ev(7, ['A', 'S', 'A'])) === 'FC', 'ASA at 7 = Full Clear');
-ok(label(ev(3, ['A', 'S', 'C'])) === 'FC' && label(ev(4, ['A', 'S', 'C'])) !== 'FC', 'ASC: Full Clear only by 3 deploys');
-ok(label(ev(3, ['C', 'S', 'A'])) === 'none', 'CSA is not claimed (post unsure)');
-ok(ev(3, ['S', 'B', 'B']).title.startsWith('Probably'), 'SBB at 3 flagged as not guaranteed');
+ok(label(ev(5, ['A', 'S', 'C'])) === 'FC' && label(ev(6, ['A', 'S', 'C'])) !== 'FC', 'ASC: Min Full Clear only by 5 deploys');
+ok(label(ev(5, ['B', 'S', 'A'])) === 'FC' && ev(6, ['B', 'S', 'A']).title.startsWith('Probably'), 'BSA: fine at 5, tight (flagged) at 6');
+ok(label(ev(5, ['S', 'A', 'E'])) === 'FC' && ev(5, ['S', 'A', 'E']).title.startsWith('Probably'), 'SAE flagged as not guaranteed');
+ok(label(ev(5, ['C', 'S', 'A'])) === 'none', 'CSA is not claimed');
+ok(ev(3, ['S', 'B', 'B']).title.startsWith('Probably') && label(ev(4, ['S', 'B', 'B'])) !== 'FC', 'SBB at 3 flagged as extremely RNG');
 ok(label(ev(14, ['S', 'D', 'D'])) === 'W10' && label(ev(15, ['S', 'D', 'D'])) === 'none', 'S Red Wave 10 lasts around 14 deploys');
 ok(label(ev(8, ['B', 'S', 'B'])) === 'W10' && label(ev(9, ['B', 'S', 'B'])) === 'none', 'S Black Wave 10 lasts 8 deploys');
 ok(label(ev(10, ['S', 'S', 'B'])) === 'FC' && label(ev(11, ['S', 'S', 'B'])) !== 'FC', 'Double S up to 10 deploys');
 ok(ev(10, ['', '', '']).kind === 'restart', 'no S by end of Wave 4 (10 deploys) = restart');
 ok(ev(6, ['C', 'D', 'B'], true).kind === 'restart', 'short mode: no S/A at 6 = restart');
-ok(ev(6, ['', 'S', 'C'], true).kind === 'stop', 'short mode: S at 6 = stop and level');
+ok(ev(6, ['', '', 'A'], true).kind === 'restart', 'short mode: A but no S at 6 = restart');
+ok(ev(6, ['S', 'D', 'A'], true).kind === 'stop', 'short mode: S+A at 6 = stop and level');
+ok(ev(6, ['S', 'S', 'C'], true).kind === 'stop', 'short mode: S+S at 6 = stop and level');
+ok(ev(6, ['', 'S', 'C'], true).kind !== 'stop' && ev(6, ['', 'S', 'C'], true).lines.join(' ').includes('only have one S'), 'short mode: one S = finish the run');
 ok(ev(4, ['B', 'S', 'B']).kind === 'go', 'Wave 10 combo early = keep fishing');
 ok(ev(9, ['B', 'S', 'B']).lines.join(' ').includes('Past 8 deploys'), 'past 8 deploys warns Wave 10 is lost (S Black)');
 

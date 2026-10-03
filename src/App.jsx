@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { RANKS, SLOTS, LEVEL_CAP, evaluate, rollUnit, rollNothing, totalSpentPoints, estimatedWaveFromPoints } from './logic.js';
-import { gitCommitTime } from './generated/git-info.js';
+import { gitCommitMessage, gitCommitTime } from './generated/git-info.js';
 
 function Combo({ ranks, gaps = [] }) {
   return (
@@ -49,7 +49,7 @@ export default function App() {
     <main>
       <h1>MapleStory Go Go Sidekick Helper</h1>
       <p className="sub">Log each roll and it tells you if you should keep going or reset.</p>
-
+      <p className="sub">Last updated: {lastUpdatedText}{gitCommitMessage && ` — ${gitCommitMessage}`}</p>
       <section className="panel">
         <div className="row">
           <span className="label">Deploys used</span>
@@ -108,18 +108,19 @@ export default function App() {
           </label>
           <div className="actions">
             <button className={`toggle${fcOnly ? ' on' : ''}`} aria-pressed={fcOnly} onClick={() => setFcOnly((v) => !v)}>
-              Full Clear only: {fcOnly ? 'On' : 'Off'}
+              All Clear only: {fcOnly ? 'On' : 'Off'}
             </button>
             <button className="ghost" onClick={reset}>New run</button>
           </div>
         </div>
-        {fcOnly && <p className="note">Wave 10 results are ignored. It tells you to keep deploying while a Full Clear is still reachable.</p>}
+        {fcOnly && <p className="note">Wave 10 results are ignored. It tells you to keep deploying while an All Clear is still reachable.</p>}
       </section>
 
       <section className={`verdict ${result.kind}`} aria-live="polite">
         <h2>{result.title}</h2>
         {result.lines.map((l) => <p key={l}>{l}</p>)}
       </section>
+      <p className="note"><b>All Clear</b> means you clear Wave 10. <b>Wave 10</b> means you reach it but don't clear all the mobs before the timer runs out.</p>
 
       {result.kind === 'go' && result.targets.length > 0 && (
         <section className="panel">
@@ -149,10 +150,11 @@ export default function App() {
         <a href="https://www.reddit.com/r/Maplestory/comments/1wu7hyv/go_go_sidekick_winning_combinations/" target="_blank" rel="noreferrer">
           r/Maplestory, "Go Go Sidekick winning combinations"
         </a>
-        , which uses MapleSEA/TMS data. Real odds are unknown, so this only checks which listed combinations are
-        still reachable, assuming each deploy can improve one slot and a rolled unit competes with the slot of its
-        own color. Slot order is Red, Black, Yellow.
-        <br />Last updated: {lastUpdatedText}
+        {' '}and the spreadsheet linked on that thread:{' '}
+        <a href="https://docs.google.com/spreadsheets/d/1TX9w1WcmTQi8iB5JdoL7M0ABmpMglWOSwJvSdjEyRo8/edit?gid=0" target="_blank" rel="noreferrer">
+          Go Go Sidekick! Winning Combinations (Google Sheets)
+        </a>
+        .
       </footer>
     </main>
   );

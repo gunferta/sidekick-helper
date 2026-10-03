@@ -6,7 +6,7 @@ export const RANKS = ['S', 'A', 'B', 'C', 'D', 'E'];
 export const SLOTS = ['Red', 'Black', 'Yellow'];
 export const DEPLOY_COST = 150;
 const V = { S: 6, A: 5, B: 4, C: 3, D: 2, E: 1, '': 0 };
-export const FC = 'Full Clear';
+export const FC = 'All Clear';
 export const W10 = 'Wave 10';
 
 // Keys for the post's "Final Result" level plans (see PLAN). The advice shown is built from your actual hand.
@@ -17,22 +17,33 @@ const MIN3 = 'Red10+Black10+Yellow3';
 const SS = 'S10+S5';
 const WV = 'S10+B7';
 const WSTAR = 'S10 is enough';
+const SA8 = 'S10+A7';
+const SS8 = 'S10+S7';
+const SSS12 = 'S10+S2';
+// Marked "Unstable" (highlighted) on the community sheet
+const TIGHT = 'extremely tight, collect points and upgrade exactly on time';
 const p = (tier, ranks, max, levels, note = '') => ({ tier, ranks, max, levels, note });
 
 // Tables are listed smallest deploy cap first, so a hand that fits several tables uses the nearest one for its level plan.
 export const PATTERNS = [
-  // Min Full Clear: 5 deploys (Wave 2), final S10 + A10 + 1
-  p(FC, 'SDA', 5, MIN5), p(FC, 'ASC', 5, MIN5), p(FC, 'ACS', 5, MIN5),
-  p(FC, 'SAE', 5, MIN5, 'may not be a guaranteed clear, 2 more deploys could find a more stable hand'),
+  // Min All Clear: 5 deploys (Wave 2), final S10 + A10 + 1
+  p(FC, 'SDA', 5, MIN5), p(FC, 'ASC', 5, MIN5),
+  p(FC, 'SAE', 5, MIN5, `${TIGHT}; 2 more deploys can find a more stable hand`),
+  p(FC, 'AES', 5, MIN5, `${TIGHT}; 2 more deploys can find a more stable hand`),
   p(FC, 'BSA', 5, MIN5), p(FC, 'BAS', 5, MIN5),
-  // Full Clear: 6 deploys (Wave 2), final S10 + A9
+  // All Clear: 6 deploys (Wave 2), final S10 + A9
   p(FC, 'SAC', 6, SA), p(FC, 'SCA', 6, SA), p(FC, 'ASB', 6, SA), p(FC, 'ACS', 6, SA), p(FC, 'BAS', 6, SA),
-  p(FC, 'BSA', 6, SA, 'extremely tight, collect points and upgrade exactly on time'),
-  // Full Clear: 7 deploys (Wave 3), final S10 + A8
+  p(FC, 'BSA', 6, SA, TIGHT),
+  // All Clear: 7 deploys (Wave 3), final S10 + A8
   p(FC, 'SAB', 7, SA7), p(FC, 'SBA', 7, SA7), p(FC, 'ASA', 7, SA7), p(FC, 'ABS', 7, SA7), p(FC, 'BAS', 7, SA7),
-  // Full Clear, Double S: up to 10 deploys (Wave 4)
+  // All Clear: 8 deploys (Wave 3), final S10 + A7 / S10 + S7 (community sheet). The double S ones need the S10 on Red or Yellow, never Black.
+  p(FC, 'SAA', 8, SA8), p(FC, 'ASA', 8, SA8), p(FC, 'AAS', 8, SA8),
+  p(FC, 'SSE', 8, SS8), p(FC, 'SES', 8, SS8), p(FC, 'CSS', 8, SS8),
+  // All Clear, Double S: up to 10 deploys (Wave 4)
   p(FC, 'SSB', 10, SS), p(FC, 'SBS', 10, SS), p(FC, 'BSS', 10, SS),
-  // Extreme Min Full Clear: 3 deploys (Wave 1)
+  // Triple S: 12 deploys (Wave 5), final S10 + 2, unconfirmed on the sheet
+  p(FC, 'SSS', 12, SSS12, 'unconfirmed, the sheet marks it with a ?'),
+  // Extreme Min All Clear: 3 deploys (Wave 1)
   p(FC, 'SBB', 3, MIN3, 'extremely RNG-based, not a guaranteed clear'),
   // Wave 10: 8 deploys (Wave 3), around 14 with S Red. A star in the post means maxing that S is enough.
   p(W10, 'SDD', 14, WSTAR, 'maxing S Red is enough'),
@@ -76,7 +87,7 @@ const mins = (pts) => {
 const fmt = (n) => n.toLocaleString('en-US');
 // Target levels by rank order (best rank first; ties Red > Yellow > Black), from the post's final results
 // Arrays are levels by rank order (best rank first); byColor is levels for the Red, Black, Yellow slots
-const PLAN = new Map([[SA, [10, 9]], [SA7, [10, 8]], [MIN5, [10, 10, 1]], [SS, [10, 5]], [WV, [10, 7]], [WSTAR, [10]], [MIN3, { byColor: [10, 10, 3] }]]);
+const PLAN = new Map([[SA, [10, 9]], [SA7, [10, 8]], [MIN5, [10, 10, 1]], [SS, [10, 5]], [WV, [10, 7]], [WSTAR, [10]], [SA8, [10, 7]], [SS8, [10, 7]], [SSS12, [10, 2]], [MIN3, { byColor: [10, 10, 3] }]]);
 const SHORT_PLAN = [10, 10];
 const COLOR_PRIORITY = [0, 2, 1];
 
@@ -113,7 +124,15 @@ function planAdvice(slots, levels, plan) {
   return `Level-ups left: ${todo.map((st) => `${SLOTS[st.slot]} ${st.rank} ${levels[st.slot]} to ${st.target}`).join(', ')} (aim ${aim}). That is ${fmt(pts)} points, about ${mins(pts)} min of points.`;
 }
 
-// fcOnly: Full Clear is the only goal, so Wave 10 results are ignored and the short-on-time shortcut is off.
+// Black is level 10 and no Red or Yellow S is: the S-Black was leveled first
+const blackFirst = (slots, levels) => Boolean(levels) && slots[1] === 'S' && levels[1] >= LEVEL_CAP && ![0, 2].some((i) => slots[i] === 'S' && levels[i] >= LEVEL_CAP);
+
+const earlyDoubleS = (slots, levels) =>
+  blackFirst(slots, levels)
+    ? 'You got your Double S early, but your first S is Black, so aim for S10 + S9 (S10 + S7 only works when the first S is Red or Yellow).'
+    : 'You got your Double S early. If your first S is Red or Yellow, S10 + S7 is enough. S10 + S9 works for all three colors.';
+
+// fcOnly: All Clear is the only goal, so Wave 10 results are ignored and the short-on-time shortcut is off.
 // levels (optional): level of the Red, Black, Yellow slots, enables the leveling advice.
 export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
   const shortMode = short && !fcOnly;
@@ -124,7 +143,9 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
     const gaps = [];
     pt.ranks.split('').forEach((r, i) => { if (V[slots[i]] < V[r]) gaps.push(i); });
     const left = pt.max - deploys;
-    return { ...pt, gaps, left, done: !gaps.length && left >= 0, open: gaps.length > 0 && left >= gaps.length };
+    // The 8-deploy double S clears need the S10 on Red or Yellow. Once Black is the only S at level 10 they no longer apply.
+    const blocked = pt.levels === SS8 && blackFirst(slots, levels);
+    return { ...pt, gaps, left, done: !gaps.length && left >= 0 && !blocked, open: gaps.length > 0 && left >= gaps.length && !blocked };
   });
   const byDistance = (a, b) => a.gaps.length - b.gaps.length || b.left - a.left;
   const fc = rows.filter((r) => r.tier === FC && r.done);
@@ -151,14 +172,14 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
       return out('stop', 'Stop deploying and level up', [
         'Max out the S-rank, then level your second S to 5 or more.',
         planNote([10, 5]),
-        'Third member B or better: Full Clear. Otherwise you still reach Wave 10.',
+        'Third member B or better: All Clear. Otherwise you still reach Wave 10.',
       ]);
     }
     if (hasA) {
       return out('stop', 'Stop deploying and level up', [
         'Max out the S-rank, then level the A-rank as far as you can.',
         planNote(SHORT_PLAN),
-        'Third member B or better: Full Clear. Otherwise you still reach Wave 10.',
+        'Third member B or better: All Clear. Otherwise you still reach Wave 10.',
       ]);
     }
     // One S only: the post still recommends finishing the run with the General Strategy
@@ -168,16 +189,17 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
   if (fc.length) {
     const sure = bestFit(fc.filter((r) => !r.note), slots);
     if (sure) {
-      return out('stop', 'Full Clear locked in. Stop deploying.', [
+      return out('stop', 'All Clear locked in. Stop deploying.', [
         planNote(PLAN.get(sure.levels)),
-        sure.levels === SS && deploys < 10 && 'You got your Double S early, so S10 + S7 is enough.',
+        sure.levels === SS && deploys < 10 && earlyDoubleS(slots, levels),
+        sure.levels === SS8 && 'These 8-deploy double S clears need the S10 on Red or Yellow, not Black.',
         'More deploys only cost you level-ups now.',
       ]);
     }
     const best = bestFit(fc, slots);
-    return out('stop', 'Probably a Full Clear. Stop deploying.', [
+    return out('stop', 'Probably an All Clear. Stop deploying.', [
       planNote(PLAN.get(best.levels)),
-      `The post flags this one: ${best.note}.`,
+      `Unstable combination: ${best.note}.`,
     ]);
   }
 
@@ -186,8 +208,8 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
     if (deploys < cap && openFC.length) {
       const ls = levelStep(slots, levels);
       const title = ls && !ls.done
-        ? `Wave 10 is secured. Level ${SLOTS[ls.i]} to 10, then keep fishing for a Full Clear.`
-        : 'Wave 10 is secured. Keep fishing for a Full Clear.';
+        ? `Wave 10 is secured. Level ${SLOTS[ls.i]} to 10, then keep fishing for an All Clear.`
+        : 'Wave 10 is secured. Keep fishing for an All Clear.';
       return out('go', title, [
         `You can deploy ${cap > 8 ? 'around' : 'up to'} ${cap} times in total without losing Wave 10 (${cap - deploys} left).`,
         ls ? ls.text : 'Level the S-rank to 10 first, and leave other ranks alone until you finish deploying.',
@@ -213,7 +235,7 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
     }
     return out('go', 'Keep deploying', [
       'Deploy until an S-rank shows up, and note how many deploys it took.',
-      hasA && 'You already have an A, so an S in the right slot may finish a Full Clear.',
+      hasA && 'You already have an A, so an S in the right slot may finish an All Clear.',
       'Restart if there is still no S after deploy 10.',
     ]);
   }
@@ -231,9 +253,9 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
   }
 
   if (fcOnly) {
-    return out('restart', 'No Full Clear is reachable. Restart the minigame.', [
+    return out('restart', 'No All Clear is reachable. Restart the minigame.', [
       'Press the X at the top right of the minigame window to restart.',
-      'To gamble instead, the post says to keep deploying for a slim chance at a Triple S (after Wave 4 a Full Clear needs one), and to level every S the moment you get it.',
+      'To gamble instead, the post says to keep deploying for a slim chance at a Triple S (after Wave 4 an All Clear needs one), and to level every S the moment you get it.',
     ]);
   }
 

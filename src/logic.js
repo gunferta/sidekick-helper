@@ -18,7 +18,11 @@ const SS = 'S10+S5';
 const WV = 'S10+B7';
 const WSTAR = 'S10 is enough';
 const SA8 = 'S10+A7';
+const MIN4 = 'S10+A10+2';
+const SS6 = 'S10+S9';
+const SS7 = 'S10+S8';
 const SS8 = 'S10+S7';
+const SSD6 = 'S10+S9 (S-Black first)';
 const SSS12 = 'S10+S2';
 // Marked "Unstable" (highlighted) on the community sheet
 const TIGHT = 'extremely tight, collect points and upgrade exactly on time';
@@ -26,8 +30,12 @@ const p = (tier, ranks, max, levels, note = '') => ({ tier, ranks, max, levels, 
 
 // Tables are listed smallest deploy cap first, so a hand that fits several tables uses the nearest one for its level plan.
 export const PATTERNS = [
+  // E-Rank Min All Clear: 4 deploys (Wave 1), final S10 + A10 + 2. "A 1 second left type of clear." SEA and EAS are untested.
+  p(FC, 'SAE', 4, MIN4, `${TIGHT}, about 1 second to spare`),
+  p(FC, 'ASE', 4, MIN4, `${TIGHT}, about 1 second to spare`),
+  p(FC, 'AES', 4, MIN4, `${TIGHT}, about 1 second to spare`),
   // Min All Clear: 5 deploys (Wave 2), final S10 + A10 + 1
-  p(FC, 'SDA', 5, MIN5), p(FC, 'ASC', 5, MIN5),
+  p(FC, 'SDA', 5, MIN5), p(FC, 'ASD', 5, MIN5),
   p(FC, 'SAE', 5, MIN5, `${TIGHT}; 2 more deploys can find a more stable hand`),
   p(FC, 'AES', 5, MIN5, `${TIGHT}; 2 more deploys can find a more stable hand`),
   p(FC, 'BSA', 5, MIN5), p(FC, 'BAS', 5, MIN5),
@@ -36,6 +44,11 @@ export const PATTERNS = [
   p(FC, 'BSA', 6, SA, TIGHT),
   // All Clear: 7 deploys (Wave 3), final S10 + A8
   p(FC, 'SAB', 7, SA7), p(FC, 'SBA', 7, SA7), p(FC, 'ASA', 7, SA7), p(FC, 'ABS', 7, SA7), p(FC, 'BAS', 7, SA7),
+  // Double S (any third unit): 6 deploys (10 + 9) and 7 deploys (10 + 8), with the S10 on Red or Yellow.
+  // S-Black as the S10 only has SSD at 6 deploys (cleared with 10s left).
+  p(FC, 'SSE', 6, SS6), p(FC, 'SES', 6, SS6), p(FC, 'ESS', 6, SS6),
+  p(FC, 'SSD', 6, SSD6, 'S-Black first, cleared with only 10 seconds left'),
+  p(FC, 'SSE', 7, SS7), p(FC, 'SES', 7, SS7), p(FC, 'DSS', 7, SS7),
   // All Clear: 8 deploys (Wave 3), final S10 + A7 / S10 + S7 (community sheet). The double S ones need the S10 on Red or Yellow, never Black.
   p(FC, 'SAA', 8, SA8), p(FC, 'ASA', 8, SA8), p(FC, 'AAS', 8, SA8),
   p(FC, 'SSE', 8, SS8), p(FC, 'SES', 8, SS8), p(FC, 'CSS', 8, SS8),
@@ -87,7 +100,7 @@ const mins = (pts) => {
 const fmt = (n) => n.toLocaleString('en-US');
 // Target levels by rank order (best rank first; ties Red > Yellow > Black), from the post's final results
 // Arrays are levels by rank order (best rank first); byColor is levels for the Red, Black, Yellow slots
-const PLAN = new Map([[SA, [10, 9]], [SA7, [10, 8]], [MIN5, [10, 10, 1]], [SS, [10, 5]], [WV, [10, 7]], [WSTAR, [10]], [SA8, [10, 7]], [SS8, [10, 7]], [SSS12, [10, 2]], [MIN3, { byColor: [10, 10, 3] }]]);
+const PLAN = new Map([[SA, [10, 9]], [SA7, [10, 8]], [MIN5, [10, 10, 1]], [SS, [10, 5]], [WV, [10, 7]], [WSTAR, [10]], [SA8, [10, 7]], [MIN4, [10, 10, 2]], [SS6, [10, 9]], [SS7, [10, 8]], [SS8, [10, 7]], [SSD6, { byColor: [9, 10, 0], order: [1, 0, 2] }], [SSS12, [10, 2]], [MIN3, { byColor: [10, 10, 3] }]]);
 const SHORT_PLAN = [10, 10];
 const COLOR_PRIORITY = [0, 2, 1];
 
@@ -111,7 +124,7 @@ const bestFit = (list, slots) => {
 function planAdvice(slots, levels, plan) {
   if (!plan) return null;
   const byColor = !Array.isArray(plan);
-  const order = byColor ? [0, 1, 2] : [0, 1, 2].sort((a, b) => V[slots[b]] - V[slots[a]] || COLOR_PRIORITY.indexOf(a) - COLOR_PRIORITY.indexOf(b));
+  const order = byColor ? plan.order || [0, 1, 2] : [0, 1, 2].sort((a, b) => V[slots[b]] - V[slots[a]] || COLOR_PRIORITY.indexOf(a) - COLOR_PRIORITY.indexOf(b));
   const steps = order
     .map((slot, k) => ({ slot, rank: slots[slot], target: byColor ? plan.byColor[slot] : plan[k] ?? 0 }))
     .filter((st) => st.rank && st.target > 0);
@@ -129,8 +142,8 @@ const blackFirst = (slots, levels) => Boolean(levels) && slots[1] === 'S' && lev
 
 const earlyDoubleS = (slots, levels) =>
   blackFirst(slots, levels)
-    ? 'You got your Double S early, but your first S is Black, so aim for S10 + S9 (S10 + S7 only works when the first S is Red or Yellow).'
-    : 'You got your Double S early. If your first S is Red or Yellow, S10 + S7 is enough. S10 + S9 works for all three colors.';
+    ? 'You got your Double S early, but your first S is Black. Within 6 deploys S10 + S9 works for all three colors; past 6 deploys the 10-deploy table is the minimum for an S10 Black.'
+    : 'You got your Double S early. Within 8 deploys with the first S Red or Yellow, S10 + S7 is mostly enough. Within 6 deploys, S10 + S9 works for all three colors.';
 
 // fcOnly: All Clear is the only goal, so Wave 10 results are ignored and the short-on-time shortcut is off.
 // levels (optional): level of the Red, Black, Yellow slots, enables the leveling advice.
@@ -143,8 +156,8 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
     const gaps = [];
     pt.ranks.split('').forEach((r, i) => { if (V[slots[i]] < V[r]) gaps.push(i); });
     const left = pt.max - deploys;
-    // The 8-deploy double S clears need the S10 on Red or Yellow. Once Black is the only S at level 10 they no longer apply.
-    const blocked = pt.levels === SS8 && blackFirst(slots, levels);
+    // The 6, 7 and 8 deploy double S clears need the S10 on Red or Yellow. Once Black is the only S at level 10 they no longer apply.
+    const blocked = [SS6, SS7, SS8].includes(pt.levels) && blackFirst(slots, levels);
     return { ...pt, gaps, left, done: !gaps.length && left >= 0 && !blocked, open: gaps.length > 0 && left >= gaps.length && !blocked };
   });
   const byDistance = (a, b) => a.gaps.length - b.gaps.length || b.left - a.left;
@@ -157,8 +170,8 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
   let shortNote = null;
   const out = (kind, title, lines) => ({ kind, title, lines: [shortNote, ...lines].filter(Boolean), targets });
 
-  if (shortMode && deploys >= 6) {
-    // Fast Strategy: after 6 deploys keep the run only with S+A or S+S
+  if (shortMode && (deploys >= 6 || (hasS && hasA))) {
+    // Fast Strategy: stop immediately once you hold S+A; after 6 deploys keep the run only with S+A or S+S
     const sCount = slots.filter((x) => x === 'S').length;
     if (!hasS) {
       return out('restart', 'Restart the minigame', [
@@ -192,7 +205,7 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
       return out('stop', 'All Clear locked in. Stop deploying.', [
         planNote(PLAN.get(sure.levels)),
         sure.levels === SS && deploys < 10 && earlyDoubleS(slots, levels),
-        sure.levels === SS8 && 'These 8-deploy double S clears need the S10 on Red or Yellow, not Black.',
+        [SS6, SS7, SS8].includes(sure.levels) && 'These double S clears need the S10 on Red or Yellow, not Black. With S-Black as the S10, only SSD is recorded (6 deploys), and past 6 deploys the 10-deploy table is the minimum.',
         'More deploys only cost you level-ups now.',
       ]);
     }
@@ -245,8 +258,8 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
     const title = !ls ? 'Level your S-rank, then keep deploying'
       : ls.done ? `${SLOTS[ls.i]} is level 10. Start rolling.` : `Level ${SLOTS[ls.i]} to 10 before you roll again`;
     return out('go', title, [
-      ls ? ls.text : 'Level the S-rank to 10 first. It gets you safely past Wave 6.',
-      ls && !ls.done && 'A level 10 S gets you safely past Wave 6. Then start rolling again.',
+      ls ? ls.text : 'Level the S-rank to 10 first. Without it you will not make it past Wave 6, even with two S-Ranks.',
+      ls && !ls.done && 'Level every S the moment you get it: without level 10 you will not make it past Wave 6, even with two S-Ranks. Then start rolling again.',
       'Do not level A/B ranks between deploys: level-ups are not retroactive if the slot changes rank.',
       !fcOnly && deploys > w10Cap(slots) && `Past ${w10Cap(slots)} deploys the Wave 10 result is gone. Only worth it to chase a Double S.`,
     ]);

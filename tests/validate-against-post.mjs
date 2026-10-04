@@ -4,16 +4,20 @@ import { PATTERNS, evaluate } from '../src/logic.js';
 
 // ---- Transcribed from the post (columns: S Red / S Black / S Yellow) ----
 const post = {
-  minFull5: { Red: ['SDA', 'SAE'], Black: ['ASC', 'BSA'], Yellow: ['AES', 'BAS'] },
+  minFull4: { Red: ['SAE'], Black: ['ASE'], Yellow: ['AES'] }, // SEA / EAS untested
+  minFull5: { Red: ['SDA', 'SAE'], Black: ['ASD', 'BSA'], Yellow: ['AES', 'BAS'] },
   fullClear6: { Red: ['SAC', 'SCA'], Black: ['ASB', 'BSA'], Yellow: ['ACS', 'BAS'] },
   fullClear7: { Red: ['SAB', 'SBA'], Black: ['ASA'], Yellow: ['ABS', 'BAS'] },
   // Community Google Sheet rows that the post's own tables do not print
+  // "any SS" with the S10 on Red or Yellow (third unit any rank), S-Black first only has SSD at 6
+  ss6: { Red: ['SSE', 'SES'], Black: ['SSD'], Yellow: ['SES', 'ESS'] },
+  ss7: { Red: ['SSE', 'SES'], Yellow: ['SES', 'DSS'] },
   sheet8: { Red: ['SAA', 'SSE', 'SES'], Black: ['ASA'], Yellow: ['AAS', 'SES', 'CSS'] },
   doubleS10: { Red: ['SSB', 'SBS'], Black: ['SSB', 'BSS'], Yellow: ['BSS', 'SBS'] },
   wave10: { Red: ['SDD'], Black: ['BSB'], Yellow: ['BDS', 'DBS'] },
   extremeMin3: { Red: ['SBB'] },
 };
-const fullClearTables = { minFull5: 5, fullClear6: 6, fullClear7: 7, sheet8: 8, doubleS10: 10, extremeMin3: 3 };
+const fullClearTables = { minFull4: 4, minFull5: 5, fullClear6: 6, ss6: 6, fullClear7: 7, ss7: 7, sheet8: 8, doubleS10: 10, extremeMin3: 3 };
 const tripleS = ['SSS']; // 12 deploys, unconfirmed (marked with a ? on the sheet)
 // "8 for S-Black, around 14 if you have S-Red" (Yellow is not stated, so 8)
 const wave10Cap = { Red: 14, Black: 8, Yellow: 8 };
@@ -74,6 +78,10 @@ ok(label(ev(5, ['B', 'S', 'A'])) === 'FC' && ev(6, ['B', 'S', 'A']).title.starts
 ok(label(ev(5, ['S', 'A', 'E'])) === 'FC' && ev(5, ['S', 'A', 'E']).title.startsWith('Probably'), 'SAE flagged as not guaranteed');
 ok(label(ev(5, ['C', 'S', 'A'])) === 'none', 'CSA is not claimed');
 ok(ev(3, ['S', 'B', 'B']).title.startsWith('Probably') && label(ev(4, ['S', 'B', 'B'])) !== 'FC', 'SBB at 3 flagged as extremely RNG');
+ok(label(ev(4, ['S', 'A', 'E'])) === 'FC' && label(ev(5, ['A', 'S', 'E'])) !== 'FC', '4-deploy SAE works, ASE only at 4');
+ok(label(ev(6, ['S', 'S', 'E'])) === 'FC' && label(ev(6, ['E', 'S', 'S'])) === 'FC' && label(ev(7, ['E', 'S', 'S'])) !== 'FC', 'any double S at 6, ESS drops out at 7');
+ok(label(ev(7, ['D', 'S', 'S'])) === 'FC' && label(ev(8, ['D', 'S', 'S'])) !== 'FC', 'DSS works at 7 only');
+ok(ev(3, ['S', 'D', 'A'], true).kind === 'stop', 'short mode: S+A stops immediately');
 ok(label(ev(5, ['A', 'E', 'S'])) === 'FC' && ev(5, ['A', 'E', 'S']).title.startsWith('Probably'), 'AES flagged as unstable');
 ok(label(ev(8, ['S', 'A', 'A'])) === 'FC' && label(ev(9, ['S', 'A', 'A'])) !== 'FC', 'SAA works at 8 deploys (sheet)');
 ok(label(ev(8, ['A', 'S', 'A'])) === 'FC' && label(ev(8, ['A', 'A', 'S'])) === 'FC', 'ASA and AAS work at 8 deploys (sheet)');

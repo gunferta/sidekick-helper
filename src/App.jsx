@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { RANKS, SLOTS, LEVEL_CAP, evaluate, rollUnit, rollNothing, totalSpentPoints, estimatedWaveFromPoints } from './logic.js';
 import { gitCommitMessage, gitCommitTime } from './generated/git-info.js';
 
+const PILL = { confirmed: 'Confirmed', unstable: 'Unstable', unconfirmed: 'Unconfirmed' };
+
 function Combo({ ranks, gaps = [] }) {
   return (
     <span className="combo" aria-label={ranks.split('').map((r, i) => `${SLOTS[i]} ${r}`).join(', ')}>
@@ -58,25 +60,22 @@ export default function App() {
             <output>{deploys}</output>
             <button onClick={() => setDeploys((d) => d + 1)} aria-label="One more deploy">+</button>
           </div>
-          <small className="cost">
-            {totalSpent.toLocaleString()} points spent
-            {estimatedWave > 0 ? ` (~wave ${estimatedWave})` : ' (before wave 1)'}
-          </small>
+          {mode === 'roll' && (
+            <button className="primary grow" onClick={rollNoGain}>Rolled nothing (+1 deploy)</button>
+          )}
         </div>
+        <p className="est">Wave {estimatedWave > 0 ? '~' : ''}{estimatedWave} · {totalSpent.toLocaleString()} points spent</p>
 
         <div className="row">
           <div className="seg" role="radiogroup" aria-label="Input mode">
             <button role="radio" aria-checked={mode === 'roll'} className={mode === 'roll' ? 'on' : ''} onClick={() => setMode('roll')}>Log a roll</button>
-            <button role="radio" aria-checked={mode === 'edit'} className={mode === 'edit' ? 'on' : ''} onClick={() => setMode('edit')}>Set my units</button>
+            <button role="radio" aria-checked={mode === 'edit'} className={mode === 'edit' ? 'on' : ''} onClick={() => setMode('edit')}>Edit units</button>
           </div>
           <button className="ghost" onClick={undo} disabled={!history.length}>Undo</button>
         </div>
 
         {mode === 'roll' && (
-          <div className="row">
-            <p className="note">If a roll upgraded a unit, tap its color and new rank. If nothing changed, tap Rolled nothing. Each tap counts as one deploy. Highlighted is what you hold now.</p>
-            <button onClick={rollNoGain}>Rolled nothing</button>
-          </div>
+          <p className="note">Upgraded a unit? Tap the new rank on the associated color. Nothing changed? Tap Rolled nothing. Each tap is 1 deploy.</p>
         )}
 
         {SLOTS.map((name, i) => (
@@ -102,13 +101,16 @@ export default function App() {
         ))}
 
         <div className="row foot">
-          <label className="check">
-            <input type="checkbox" checked={short && !fcOnly} disabled={fcOnly} onChange={(e) => setShort(e.target.checked)} />
-            Short on time (30 mins)
-          </label>
+          <div>
+            <label className="check">
+              <input type="checkbox" checked={short && !fcOnly} disabled={fcOnly} onChange={(e) => setShort(e.target.checked)} />
+              Short on time (30 mins)
+            </label>
+            <small className="hint">Stops as soon as you hold S + A. Restarts after 6 deploys without S + A or S + S.</small>
+          </div>
           <div className="actions">
             <button className={`toggle${fcOnly ? ' on' : ''}`} aria-pressed={fcOnly} onClick={() => setFcOnly((v) => !v)}>
-              All Clear only: {fcOnly ? 'On' : 'Off'}
+              Only aim for All Clear
             </button>
             <button className="ghost" onClick={reset}>New run</button>
           </div>
@@ -131,7 +133,10 @@ export default function App() {
                 <Combo ranks={t.ranks} gaps={t.gaps} />
                 <div>
                   <b>{t.tier}</b>: needs {t.gaps.map((i) => `${SLOTS[i]} ${t.ranks[i]}`).join(', ')}
-                  <small>{t.left} deploy{t.left === 1 ? '' : 's'} left{t.note ? `, ${t.note}` : ''}</small>
+                  <small>
+                    {t.left} deploy{t.left === 1 ? '' : 's'} left{t.status === 'confirmed' && t.note ? `, ${t.note}` : ''}
+                    <span className={`pill ${t.status}`} title={t.note || undefined}>{PILL[t.status]}</span>
+                  </small>
                 </div>
               </li>
             ))}
@@ -146,7 +151,7 @@ export default function App() {
       )}
 
       <footer>
-        Source of truth:{' '}
+        Sources:{' '}
         <a href="https://www.reddit.com/r/Maplestory/comments/1wu7hyv/go_go_sidekick_winning_combinations/" target="_blank" rel="noreferrer">
           r/Maplestory, "Go Go Sidekick winning combinations"
         </a>

@@ -26,7 +26,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--go); outlin
 .stepper output { min-width: 32px; text-align: center; font-size: 1.4rem; font-weight: 700; }
 .seg { display: flex; gap: 4px; flex-wrap: wrap; }
 .seg button { padding: 8px 10px; min-width: 40px; }
-.seg button.on { background: var(--gold); color: #1a1405; border-color: var(--gold); font-weight: 700; }
+.seg button.on { background: var(--go); color: #0b1020; border-color: var(--go); font-weight: 700; }
 .foot { justify-content: space-between; }
 .check { display: flex; align-items: center; gap: 8px; }
 .ghost { background: transparent; }
@@ -39,16 +39,24 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--go); outlin
 .targets li:first-child { border-top: 0; }
 .targets small { display: block; }
 .combo { display: inline-flex; gap: 4px; }
-.chip { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 6px; font-weight: 700; border: 2px solid var(--line); opacity: .65; }
+.chip { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 6px; font-weight: 700; border: 2px solid var(--line); opacity: .45; color: var(--muted); }
 .chip.slot-Red { border-color: var(--Red); } .chip.slot-Black { border-color: var(--Black); } .chip.slot-Yellow { border-color: var(--Yellow); }
-.chip.gap { opacity: 1; background: var(--gold); color: #1a1405; }
+.chip.gap { opacity: 1; background: var(--text); color: #0f1424; }
 .note { font-size: .85rem; margin: 8px 0 0; }
 footer { font-size: .8rem; line-height: 1.5; }
 .cost { margin-left: auto; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 button:disabled { opacity: .4; cursor: default; }
 footer a { color: var(--go); }
-.toggle.on { background: var(--gold); color: #1a1405; border-color: var(--gold); font-weight: 700; }
+.toggle.on { background: var(--go); color: #0b1020; border-color: var(--go); font-weight: 700; }
 .lv { display: flex; align-items: center; gap: 6px; }
 .lv button { padding: 4px 10px; }
 .lv output { min-width: 28px; text-align: center; font-weight: 700; }
+.primary { background: var(--go); color: #0b1020; border-color: var(--go); font-weight: 700; }
+.grow { flex: 1; min-width: 180px; }
+.est { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.hint { display: block; margin: 2px 0 0 26px; font-size: 12px; }
+.pill { display: inline-block; margin-left: 8px; padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 700; border: 1px solid; vertical-align: 1px; }
+.pill.confirmed { color: var(--stop); border-color: var(--stop); }
+.pill.unstable { color: var(--warn); border-color: var(--warn); }
+.pill.unconfirmed { color: var(--muted); border-color: var(--muted); border-style: dashed; }

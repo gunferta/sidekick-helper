@@ -2,7 +2,7 @@
 // Run: npm test   (uses Node's built-in test runner, nothing to install)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { SLOTS, evaluate, emptyRun, rollUnit, rollNothing, upgradeCost, totalSpentPoints, estimatedWaveFromPoints } from '../src/logic.js';
+import { SLOTS, PATTERNS, evaluate, emptyRun, rollUnit, rollNothing, upgradeCost, totalSpentPoints, estimatedWaveFromPoints } from '../src/logic.js';
 
 // Build a run that holds `combo` (Red, Black, Yellow; '-' = empty) after `deploys` deploys.
 function reach(combo, deploys) {
@@ -214,7 +214,9 @@ describe('Strategy from the post', () => {
   it('no S yet: keep deploying until an S shows up', () => {
     const v = verdict('---', 0);
     assert.equal(v.kind, 'go');
-    assert.match(text(v), /Deploy until an S-rank/);
+    assert.equal(v.title, 'No S yet. Keep deploying.');
+    assert.match(text(v), /0 of 10 deploys used/);
+    assert.match(text(v), /Restart if there is still no S by deploy 10 \(end of Wave 4\)/);
   });
   it('end of Wave 4 (10 deploys) with no S: restart the minigame', () => {
     assert.equal(verdict('BBB', 10).kind, 'restart');
@@ -540,7 +542,7 @@ describe('Community sheet rows', () => {
     const v = verdict('SSS', 12);
     assert.equal(v.kind, 'stop');
     assert.match(v.title, /^Probably an All Clear/);
-    assert.match(text(v), /unconfirmed/);
+    assert.match(text(v), /Unconfirmed combination/);
     assert.ok(fullClear(verdict('SSS', 10)));
     assert.ok(!/All Clear/.test(verdict('SSS', 13).title.replace('Wave 10', '')) || /^Wave 10/.test(verdict('SSS', 13).title));
   });
@@ -627,5 +629,38 @@ describe('Edit8 and Edit9: 4-deploy row and double S at 6 and 7 deploys', () => 
   it('level every S at once: you will not pass Wave 6 otherwise, even with two S-Ranks', () => {
     const v = verdict('S-C', 6);
     assert.match(text(v), /even with two S-Ranks/);
+  });
+});
+
+describe('Pills: confirmed, unstable, unconfirmed', () => {
+  it('every combo has a status, and combos with a warning note are never "confirmed" (star notes on Wave 10 hands are just hints)', () => {
+    for (const pt of PATTERNS) {
+      assert.ok(['confirmed', 'unstable', 'unconfirmed'].includes(pt.status), `${pt.ranks} ${pt.max}`);
+      if (pt.tier === 'All Clear') assert.equal(pt.status === 'confirmed', !pt.note, `${pt.ranks} at ${pt.max} deploys`);
+    }
+  });
+  it('the unstable ones match the sheet highlights and the post stars', () => {
+    const unstable = PATTERNS.filter((x) => x.status === 'unstable').map((x) => `${x.ranks}@${x.max}`).sort();
+    assert.deepEqual(unstable, ['AES@4', 'AES@5', 'ASE@4', 'BSA@6', 'SAE@4', 'SAE@5', 'SBB@3', 'SSD@6']);
+  });
+  it('SSS at 12 is the only unconfirmed one', () => {
+    assert.deepEqual(PATTERNS.filter((x) => x.status === 'unconfirmed').map((x) => `${x.ranks}@${x.max}`), ['SSS@12']);
+  });
+  it('the "Still possible" targets carry their status', () => {
+    const v = evaluate(0, ['', '', ''], false);
+    assert.ok(v.targets.length > 0 && v.targets.every((x) => ['confirmed', 'unstable', 'unconfirmed'].includes(x.status)));
+  });
+});
+
+describe('Wave timing: waves 1 and 2 take 90 seconds, later waves 60', () => {
+  it('1,225 points (S to level 10) is about 6 minutes, not 5', () => {
+    assert.match(text(verdict('S-C', 6)), /./); // sanity
+    const run = reach('S-C', 6);
+    const v = evaluate(run.deploys, run.slots, false, false, [0, 0, 0]);
+    assert.match(text(v), /1,225 points, about 6 min/);
+  });
+  it('550 points stays about 3 minutes (inside the first two waves)', () => {
+    const run = reach('S-C', 6);
+    assert.match(text(evaluate(run.deploys, run.slots, false, false, [6, 0, 0])), /550 points, about 3 min/);
   });
 });

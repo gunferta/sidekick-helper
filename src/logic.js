@@ -26,28 +26,28 @@ const SSD6 = 'S10+S9 (S-Black first)';
 const SSS12 = 'S10+S2';
 // Marked "Unstable" (highlighted) on the community sheet
 const TIGHT = 'extremely tight, collect points and upgrade exactly on time';
-const p = (tier, ranks, max, levels, note = '') => ({ tier, ranks, max, levels, note });
+const p = (tier, ranks, max, levels, note = '', status = 'confirmed') => ({ tier, ranks, max, levels, note, status });
 
 // Tables are listed smallest deploy cap first, so a hand that fits several tables uses the nearest one for its level plan.
 export const PATTERNS = [
   // E-Rank Min All Clear: 4 deploys (Wave 1), final S10 + A10 + 2. "A 1 second left type of clear." SEA and EAS are untested.
-  p(FC, 'SAE', 4, MIN4, `${TIGHT}, about 1 second to spare`),
-  p(FC, 'ASE', 4, MIN4, `${TIGHT}, about 1 second to spare`),
-  p(FC, 'AES', 4, MIN4, `${TIGHT}, about 1 second to spare`),
+  p(FC, 'SAE', 4, MIN4, `${TIGHT}, about 1 second to spare`, 'unstable'),
+  p(FC, 'ASE', 4, MIN4, `${TIGHT}, about 1 second to spare`, 'unstable'),
+  p(FC, 'AES', 4, MIN4, `${TIGHT}, about 1 second to spare`, 'unstable'),
   // Min All Clear: 5 deploys (Wave 2), final S10 + A10 + 1
   p(FC, 'SDA', 5, MIN5), p(FC, 'ASD', 5, MIN5),
-  p(FC, 'SAE', 5, MIN5, `${TIGHT}; 2 more deploys can find a more stable hand`),
-  p(FC, 'AES', 5, MIN5, `${TIGHT}; 2 more deploys can find a more stable hand`),
+  p(FC, 'SAE', 5, MIN5, `${TIGHT}; 2 more deploys can find a more stable hand`, 'unstable'),
+  p(FC, 'AES', 5, MIN5, `${TIGHT}; 2 more deploys can find a more stable hand`, 'unstable'),
   p(FC, 'BSA', 5, MIN5), p(FC, 'BAS', 5, MIN5),
   // All Clear: 6 deploys (Wave 2), final S10 + A9
   p(FC, 'SAC', 6, SA), p(FC, 'SCA', 6, SA), p(FC, 'ASB', 6, SA), p(FC, 'ACS', 6, SA), p(FC, 'BAS', 6, SA),
-  p(FC, 'BSA', 6, SA, TIGHT),
+  p(FC, 'BSA', 6, SA, TIGHT, 'unstable'),
   // All Clear: 7 deploys (Wave 3), final S10 + A8
   p(FC, 'SAB', 7, SA7), p(FC, 'SBA', 7, SA7), p(FC, 'ASA', 7, SA7), p(FC, 'ABS', 7, SA7), p(FC, 'BAS', 7, SA7),
   // Double S (any third unit): 6 deploys (10 + 9) and 7 deploys (10 + 8), with the S10 on Red or Yellow.
   // S-Black as the S10 only has SSD at 6 deploys (cleared with 10s left).
   p(FC, 'SSE', 6, SS6), p(FC, 'SES', 6, SS6), p(FC, 'ESS', 6, SS6),
-  p(FC, 'SSD', 6, SSD6, 'S-Black first, cleared with only 10 seconds left'),
+  p(FC, 'SSD', 6, SSD6, 'S-Black first, cleared with only 10 seconds left', 'unstable'),
   p(FC, 'SSE', 7, SS7), p(FC, 'SES', 7, SS7), p(FC, 'DSS', 7, SS7),
   // All Clear: 8 deploys (Wave 3), final S10 + A7 / S10 + S7 (community sheet). The double S ones need the S10 on Red or Yellow, never Black.
   p(FC, 'SAA', 8, SA8), p(FC, 'ASA', 8, SA8), p(FC, 'AAS', 8, SA8),
@@ -55,9 +55,9 @@ export const PATTERNS = [
   // All Clear, Double S: up to 10 deploys (Wave 4)
   p(FC, 'SSB', 10, SS), p(FC, 'SBS', 10, SS), p(FC, 'BSS', 10, SS),
   // Triple S: 12 deploys (Wave 5), final S10 + 2, unconfirmed on the sheet
-  p(FC, 'SSS', 12, SSS12, 'unconfirmed, the sheet marks it with a ?'),
+  p(FC, 'SSS', 12, SSS12, 'the sheet marks it with a ?', 'unconfirmed'),
   // Extreme Min All Clear: 3 deploys (Wave 1)
-  p(FC, 'SBB', 3, MIN3, 'extremely RNG-based, not a guaranteed clear'),
+  p(FC, 'SBB', 3, MIN3, 'extremely RNG-based, not a guaranteed clear', 'unstable'),
   // Wave 10: 8 deploys (Wave 3), around 14 with S Red. A star in the post means maxing that S is enough.
   p(W10, 'SDD', 14, WSTAR, 'maxing S Red is enough'),
   p(W10, 'BSB', 8, WV),
@@ -69,11 +69,12 @@ export const PATTERNS = [
 const w10Cap = (slots) => Math.max(8, ...PATTERNS.filter((x) => x.tier === W10 && slots[x.ranks.indexOf('S')] === 'S').map((x) => x.max));
 
 // ---- Leveling: costs 100 + 5 per current level (8->9 is 140), max level 10.
-// Wave 1 takes 1:30; waves 2+ are 1:00 each, while wave count still matches 300 points per wave. ----
+// Waves 1 and 2 take 1:30 each; waves 3+ are 1:00 each, while wave count still matches 300 points per wave. ----
 export const LEVEL_CAP = 10;
 export const POINTS_PER_MIN = 300;
 export const POINTS_PER_WAVE = 300;
-export const FIRST_WAVE_SECONDS = 90;
+export const EARLY_WAVES = 2;
+export const EARLY_WAVE_SECONDS = 90;
 export const LATER_WAVE_SECONDS = 60;
 export const upgradeCost = (from, to) => {
   let total = 0;
@@ -93,9 +94,10 @@ export const estimatedWaveFromPoints = (points) => {
 };
 const mins = (pts) => {
   if (pts <= 0) return 0;
-  const firstWaveBoost = Math.min(pts, POINTS_PER_WAVE) * (FIRST_WAVE_SECONDS / POINTS_PER_WAVE);
-  const laterWaveBoost = Math.max(0, pts - POINTS_PER_WAVE) * (LATER_WAVE_SECONDS / POINTS_PER_WAVE);
-  return Math.max(1, Math.ceil((firstWaveBoost + laterWaveBoost) / 60));
+  const earlyPts = Math.min(pts, POINTS_PER_WAVE * EARLY_WAVES);
+  const laterPts = Math.max(0, pts - POINTS_PER_WAVE * EARLY_WAVES);
+  const seconds = earlyPts * (EARLY_WAVE_SECONDS / POINTS_PER_WAVE) + laterPts * (LATER_WAVE_SECONDS / POINTS_PER_WAVE);
+  return Math.max(1, Math.ceil(seconds / 60));
 };
 const fmt = (n) => n.toLocaleString('en-US');
 // Target levels by rank order (best rank first; ties Red > Yellow > Black), from the post's final results
@@ -212,7 +214,7 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
     const best = bestFit(fc, slots);
     return out('stop', 'Probably an All Clear. Stop deploying.', [
       planNote(PLAN.get(best.levels)),
-      `Unstable combination: ${best.note}.`,
+      `${best.status === 'unconfirmed' ? 'Unconfirmed' : 'Unstable'} combination: ${best.note}.`,
     ]);
   }
 
@@ -246,10 +248,10 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
         'Restart with the X in the minigame window, or keep going if you want to gamble.',
       ]);
     }
-    return out('go', 'Keep deploying', [
-      'Deploy until an S-rank shows up, and note how many deploys it took.',
+    return out('go', 'No S yet. Keep deploying.', [
+      `${deploys} of 10 deploys used. Restart if there is still no S by deploy 10 (end of Wave 4).`,
+      'Note how many deploys it took to get an S.',
       hasA && 'You already have an A, so an S in the right slot may finish an All Clear.',
-      'Restart if there is still no S after deploy 10.',
     ]);
   }
 

@@ -159,10 +159,12 @@ describe('Wave 10: 8 deploys, by Wave 3 (around 14 with S Red)', () => {
 
 describe('Min All Clear: 5 deploys, by Wave 2', () => {
   const min5 = {
-    SDA: 'Level Red S to 10, then Yellow A to 10, then Black D to 1 (aim S10 + A10 + D1).',
-    ASC: 'Level Black S to 10, then Red A to 10, then Yellow C to 1 (aim S10 + A10 + C1).',
+    SEA: 'Level Red S to 10, then Yellow A to 10, then Black E to 1 (aim S10 + A10 + E1).',
+    SDA: 'Level Red S to 10, then Yellow A to 10, then Black D to 1 (aim S10 + A10 + D1).', // beats SEA
+    ASC: 'Level Black S to 10, then Red A to 10, then Yellow C to 1 (aim S10 + A10 + C1).', // beats ASD
+    ASD: 'Level Black S to 10, then Red A to 10, then Yellow D to 1 (aim S10 + A10 + D1).',
     BSA: 'Level Black S to 10, then Yellow A to 10, then Red B to 1 (aim S10 + A10 + B1).',
-    BAS: 'Level Yellow S to 10, then Black A to 10, then Red B to 1 (aim S10 + A10 + B1).',
+    CAS: 'Level Yellow S to 10, then Black A to 10, then Red C to 1 (aim S10 + A10 + C1).',
   };
   for (const [combo, advice] of Object.entries(min5)) {
     it(`${combo} at 5 deploys is an All Clear: ${advice}`, () => {
@@ -171,24 +173,30 @@ describe('Min All Clear: 5 deploys, by Wave 2', () => {
       assert.ok(text(v).includes(advice), text(v));
     });
   }
-  it('SAE and AES are unstable: extremely tight, collect points and upgrade on time', () => {
-    const a = verdict('AES', 5);
-    assert.match(a.title, /^Probably an All Clear/);
-    assert.match(text(a), /extremely tight/);
-    assert.ok(text(a).includes('Level Yellow S to 10, then Red A to 10, then Black E to 1 (aim S10 + A10 + E1).'), text(a));
-    const v = verdict('SAE', 5);
-    assert.equal(v.kind, 'stop');
-    assert.match(v.title, /^Probably an All Clear/);
-    assert.match(text(v), /extremely tight/);
+  it('BAS beats CAS (5-deploy table) and is also in the 6-deploy table, so it uses S10 + A9', () => {
+    const v = verdict('BAS', 5);
+    assert.ok(fullClear(v), text(v));
+    assert.ok(text(v).includes('Level Yellow S to 10, then Black A to 9 (aim S10 + A9).'), text(v));
   });
-  it('ACS at 5 deploys is an All Clear through the 6-deploy table (the post lists it only there)', () => {
+  it('SAE and AES are unstable: extremely tight, collect points and upgrade on time', () => {
+    for (const combo of ['SAE', 'AES']) {
+      const v = verdict(combo, 5);
+      assert.equal(v.kind, 'stop');
+      assert.match(v.title, /^Probably an All Clear/);
+      assert.match(text(v), /extremely tight/);
+    }
+    assert.ok(text(verdict('AES', 5)).includes('Level Yellow S to 10, then Red A to 10, then Black E to 1 (aim S10 + A10 + E1).'));
+  });
+  it('ACS at 5 deploys is an All Clear through the 6-deploy table', () => {
     const v = verdict('ACS', 5);
     assert.ok(fullClear(v), text(v));
     assert.ok(text(v).includes('Level Yellow S to 10, then Red A to 9 (aim S10 + A9).'), text(v));
   });
   it('SDA is no longer an All Clear at 6 deploys', () => assert.ok(!fullClear(verdict('SDA', 6))));
-  it('CAS (dropped from the tables) is not claimed', () => assert.ok(!fullClear(verdict('CAS', 5))));
-  it('CSA is not claimed', () => assert.notEqual(verdict('CSA', 5).kind, 'stop'));
+  it('CSA only works at 4 deploys, not 5', () => {
+    assert.equal(verdict('CSA', 4).kind, 'stop');
+    assert.notEqual(verdict('CSA', 5).kind, 'stop');
+  });
 });
 
 describe('Extreme Min All Clear: 3 deploys, by Wave 1', () => {
@@ -503,7 +511,7 @@ describe('Level advice only names units you actually hold', () => {
   });
 });
 
-describe('Community sheet rows', () => {
+describe('Sheet rows: 8 deploys and the S-Black column', () => {
   const sheet8A = {
     SAA: 'Level Red S to 10, then Yellow A to 7 (aim S10 + A7).',
     ASA: 'Level Black S to 10, then Red A to 7 (aim S10 + A7).',
@@ -517,34 +525,36 @@ describe('Community sheet rows', () => {
     });
     it(`${combo} at 9 deploys is no longer an All Clear`, () => assert.ok(!fullClear(verdict(combo, 9))));
   }
-  const sheet8S = {
+  const any8 = {
     SSE: 'Level Red S to 10, then Black S to 7 (aim S10 + S7).',
     SES: 'Level Red S to 10, then Yellow S to 7 (aim S10 + S7).',
+    ESS: 'Level Yellow S to 10, then Black S to 7 (aim S10 + S7).',
     CSS: 'Level Yellow S to 10, then Black S to 7 (aim S10 + S7).',
   };
-  for (const [combo, advice] of Object.entries(sheet8S)) {
-    it(`${combo} at 8 deploys is an All Clear (double S, weak third unit): ${advice}`, () => {
+  for (const [combo, advice] of Object.entries(any8)) {
+    it(`${combo} at 8 deploys is an All Clear (any SS): ${advice}`, () => {
       const v = verdict(combo, 8);
       assert.ok(fullClear(v), text(v));
       assert.ok(text(v).includes(advice), text(v));
-      assert.match(text(v), /S10 on Red or Yellow, not Black/);
+      assert.match(text(v), /S10 on Red or Yellow/);
     });
-    it(`${combo} at 9 deploys is no longer an All Clear`, () => assert.ok(!fullClear(verdict(combo, 9))));
   }
-  it('the 8-deploy double S rows do not apply once S-Black is the only S at level 10', () => {
+  it('SSE, SES and ESS at 9 deploys are no longer an All Clear (9 needs a C)', () => {
+    for (const combo of ['SSE', 'SES', 'ESS']) assert.ok(!fullClear(verdict(combo, 9)), combo);
+  });
+  it('the Red/Yellow double S rows stop applying once S-Black is the only S at level 10', () => {
     const run = reach('SSE', 8);
-    const withBlack10 = evaluate(run.deploys, run.slots, false, false, [0, 10, 0]);
-    assert.ok(!fullClear(withBlack10), text(withBlack10));
+    assert.ok(!fullClear(evaluate(run.deploys, run.slots, false, false, [0, 10, 0])));
     assert.ok(fullClear(evaluate(run.deploys, run.slots, false, false, [10, 10, 0])));
     assert.ok(fullClear(evaluate(run.deploys, run.slots, false, false, [10, 0, 0])));
   });
-  it('SSS at 12 deploys is unconfirmed; at 10 it is already a normal double S All Clear', () => {
-    const v = verdict('SSS', 12);
-    assert.equal(v.kind, 'stop');
-    assert.match(v.title, /^Probably an All Clear/);
-    assert.match(text(v), /Unconfirmed combination/);
-    assert.ok(fullClear(verdict('SSS', 10)));
-    assert.ok(!/All Clear/.test(verdict('SSS', 13).title.replace('Wave 10', '')) || /^Wave 10/.test(verdict('SSS', 13).title));
+  it('S-Black as the S10 at 8 deploys: only SSC works', () => {
+    const ssc = reach('SSC', 8);
+    const v = evaluate(ssc.deploys, ssc.slots, false, false, [0, 10, 0]);
+    assert.ok(fullClear(v), text(v));
+    assert.match(text(v), /Red S 0 to 7/);
+    const ssd = reach('SSD', 8);
+    assert.ok(!fullClear(evaluate(ssd.deploys, ssd.slots, false, false, [0, 10, 0])));
   });
   it('early double S: Red/Yellow first within 8 deploys, S-Black first has its own rule', () => {
     const plain = text(verdict('SSB', 5));
@@ -553,15 +563,16 @@ describe('Community sheet rows', () => {
     const run = reach('SSB', 5);
     const blackFirst = evaluate(run.deploys, run.slots, false, false, [0, 10, 0]);
     assert.match(text(blackFirst), /your first S is Black/);
-    assert.match(text(blackFirst), /past 6 deploys the 10-deploy table is the minimum/);
+    assert.match(text(blackFirst), /10-deploy table is the minimum/);
   });
 });
 
-describe('Edit8 and Edit9: 4-deploy row and double S at 6 and 7 deploys', () => {
+describe('Edit10 and the sheet: small hands, any SS, and the late rows', () => {
   const min4 = {
     SAE: 'Level Red S to 10, then Black A to 10, then Yellow E to 2 (aim S10 + A10 + E2).',
     ASE: 'Level Black S to 10, then Red A to 10, then Yellow E to 2 (aim S10 + A10 + E2).',
     AES: 'Level Yellow S to 10, then Red A to 10, then Black E to 2 (aim S10 + A10 + E2).',
+    CSA: 'Level Black S to 10, then Yellow A to 10, then Red C to 2 (aim S10 + A10 + C2).',
   };
   for (const [combo, advice] of Object.entries(min4)) {
     it(`${combo} at 4 deploys is an unstable All Clear (1 second to spare): ${advice}`, () => {
@@ -572,63 +583,86 @@ describe('Edit8 and Edit9: 4-deploy row and double S at 6 and 7 deploys', () => 
       assert.ok(text(v).includes(advice), text(v));
     });
   }
-  it('ASE is not an All Clear at 5 deploys; SEA and EAS (untested) are not claimed at 4', () => {
-    assert.ok(!/All Clear/.test(verdict('ASE', 5).title) || /Wave 10/.test(verdict('ASE', 5).title));
-    assert.notEqual(verdict('SEA', 4).kind, 'stop');
+  it('ASE is not an All Clear at 5 deploys, and EAS (unknown) is not claimed', () => {
+    assert.ok(!fullClear(verdict('ASE', 5)));
     assert.notEqual(verdict('EAS', 4).kind, 'stop');
   });
-  it('ASD replaced ASC in the 5-deploy table (ASC still passes because it beats ASD)', () => {
-    const asd = verdict('ASD', 5);
-    assert.ok(fullClear(asd), text(asd));
-    assert.ok(text(asd).includes('Level Black S to 10, then Red A to 10, then Yellow D to 1 (aim S10 + A10 + D1).'), text(asd));
-    assert.ok(fullClear(verdict('ASC', 5)));
-  });
-
-  const ss6 = {
-    SSE: 'Level Red S to 10, then Black S to 9 (aim S10 + S9).',
-    SES: 'Level Red S to 10, then Yellow S to 9 (aim S10 + S9).',
-    ESS: 'Level Yellow S to 10, then Black S to 9 (aim S10 + S9).',
-  };
-  for (const [combo, advice] of Object.entries(ss6)) {
-    it(`${combo} at 6 deploys: any double S is an All Clear (S10 + S9). ${advice}`, () => {
-      const v = verdict(combo, 6);
-      assert.ok(fullClear(v), text(v));
-      assert.ok(text(v).includes(advice), text(v));
-    });
-  }
-  it('at 7 deploys: SSE, SES and DSS work (S10 + S8), ESS does not', () => {
-    assert.ok(text(verdict('SSE', 7)).includes('Level Red S to 10, then Black S to 8 (aim S10 + S8).'));
-    assert.ok(text(verdict('SES', 7)).includes('Level Red S to 10, then Yellow S to 8 (aim S10 + S8).'));
-    const dss = verdict('DSS', 7);
-    assert.ok(fullClear(dss), text(dss));
-    assert.ok(text(dss).includes('Level Yellow S to 10, then Black S to 8 (aim S10 + S8).'), text(dss));
-    assert.ok(!fullClear(verdict('ESS', 7)));
-  });
-  it('DSS is not an All Clear at 8 deploys (it needs a C or better in Red there: CSS)', () => {
-    assert.ok(!fullClear(verdict('DSS', 8)));
-    assert.ok(fullClear(verdict('CSS', 8)));
-  });
-  it('S-Black first: only SSD works within 6 deploys, flagged as cleared with 10 seconds left', () => {
-    const run = reach('SSD', 6);
-    const v = evaluate(run.deploys, run.slots, false, false, [0, 10, 0]);
+  it('DAS at 3 deploys: unstable, level Yellow, then Black, then Red (D3 A10 S10)', () => {
+    const v = verdict('DAS', 3);
     assert.equal(v.kind, 'stop');
     assert.match(v.title, /^Probably an All Clear/);
-    assert.match(text(v), /10 seconds left/);
-    assert.ok(text(v).includes('Level-ups left: Red S 0 to 9'), text(v));
-    const sse = reach('SSE', 6);
-    assert.ok(!fullClear(evaluate(sse.deploys, sse.slots, false, false, [0, 10, 0])));
-    const late = reach('SSD', 7);
-    assert.ok(!/All Clear/.test(evaluate(late.deploys, late.slots, false, false, [0, 10, 0]).title.replace('Wave 10', '')) || /^Wave 10/.test(evaluate(late.deploys, late.slots, false, false, [0, 10, 0]).title));
+    assert.match(text(v), /3 seconds left/);
+    assert.ok(text(v).includes('Level Yellow S to 10, then Black A to 10, then Red D to 3 (aim S10 + A10 + D3).'), text(v));
+    assert.ok(!/^Probably an All Clear/.test(verdict('DAS', 4).title));
   });
-  it('short on time: stop immediately once you hold S + A, even before 6 deploys', () => {
-    const v = verdict('SDA', 3, true);
-    assert.equal(v.kind, 'stop');
-    assert.match(text(v), /Max out the S-rank, then level the A-rank/);
-    assert.notEqual(verdict('S-C', 3, true).kind, 'stop'); // one S and no A keeps going
+  it('any double S at 4 deploys: S10 + S10 + 2, then at 5 it falls back to the 6-deploy S10 + S9', () => {
+    assert.ok(text(verdict('SSE', 4)).includes('Level Red S to 10, then Black S to 10, then Yellow E to 2 (aim S10 + S10 + E2).'));
+    assert.ok(text(verdict('ESS', 4)).includes('Level Yellow S to 10, then Black S to 10, then Red E to 2 (aim S10 + S10 + E2).'));
+    assert.ok(text(verdict('SES', 5)).includes('Level Red S to 10, then Yellow S to 9 (aim S10 + S9).'));
   });
-  it('level every S at once: you will not pass Wave 6 otherwise, even with two S-Ranks', () => {
-    const v = verdict('S-C', 6);
-    assert.match(text(v), /even with two S-Ranks/);
+  it('5 deploys: SEA is an All Clear now (it replaced SDA, which still passes)', () => {
+    assert.ok(fullClear(verdict('SEA', 5)));
+    assert.ok(fullClear(verdict('SDA', 5)));
+  });
+  it('6 and 7 deploys: any double S, including ESS at 7 (S10 + S9 then S10 + S8)', () => {
+    for (const combo of ['SSE', 'SES', 'ESS']) {
+      assert.ok(text(verdict(combo, 6)).includes('(aim S10 + S9)'), combo);
+      assert.ok(text(verdict(combo, 7)).includes('(aim S10 + S8)'), combo);
+    }
+    assert.ok(text(verdict('ESS', 7)).includes('Level Yellow S to 10, then Black S to 8 (aim S10 + S8).'));
+    assert.ok(fullClear(verdict('DSS', 7)) && fullClear(verdict('DSS', 8)));
+  });
+  it('S-Black as the S10: SSD (tight) and CSS at 6, SSD and CSS at 7, SSC at 8', () => {
+    const lv = [0, 10, 0];
+    const run = (combo, d) => { const r = reach(combo, d); return evaluate(r.deploys, r.slots, false, false, lv); };
+    // SSD* at 6 is the tighter row (S10 + S9), but the 7-deploy row (S10 + S8) also covers 6 deploys, so that plan is used
+    const ssd6 = run('SSD', 6);
+    assert.ok(fullClear(ssd6), text(ssd6));
+    assert.ok(text(ssd6).includes('Level-ups left: Red S 0 to 8'), text(ssd6));
+    const css6 = run('CSS', 6);
+    assert.ok(fullClear(css6) && text(css6).includes('Yellow S 0 to 9'), text(css6));
+    assert.ok(fullClear(run('SSD', 7)) && fullClear(run('CSS', 7)));
+    assert.ok(!fullClear(run('SSD', 8)) && fullClear(run('SSC', 8)));
+    assert.ok(!fullClear(run('SSE', 6)));
+  });
+  it('9 deploys: SCS is found (S10 + S6); SSC is only listed as Red SS+C, so it is unconfirmed', () => {
+    const scs = verdict('SCS', 9);
+    assert.ok(fullClear(scs), text(scs));
+    assert.ok(text(scs).includes('Level Red S to 10, then Yellow S to 6 (aim S10 + S6).'), text(scs));
+    const ssc = verdict('SSC', 9);
+    assert.match(ssc.title, /^Probably an All Clear/);
+    assert.match(text(ssc), /Unconfirmed combination/);
+    assert.ok(!fullClear(verdict('SCS', 10)));
+  });
+  it('11 deploys: SSA (S10 + S3 + A1). 12 deploys: SSS (S10 + S2)', () => {
+    const ssa = verdict('SSA', 11);
+    assert.ok(fullClear(ssa), text(ssa));
+    assert.ok(text(ssa).includes('Level Red S to 10, then Black S to 3, then Yellow A to 1 (aim S10 + S3 + A1).'), text(ssa));
+    assert.ok(!fullClear(verdict('SSA', 12)));
+    const sss = verdict('SSS', 12);
+    assert.ok(fullClear(sss), text(sss));
+    assert.ok(text(sss).includes('Level Red S to 10, then Yellow S to 2 (aim S10 + S2).'), text(sss)); // ties: Red > Yellow > Black
+    assert.ok(!fullClear(verdict('SSS', 13)));
+  });
+  it('S-Black first (the sheet strategy): level it to just 5, keep deploying, switch if another S shows up', () => {
+    const run = reach('CSE', 4);
+    const start = evaluate(run.deploys, run.slots, false, false, [0, 0, 0]);
+    assert.equal(start.title, 'Level Black to 5 before you roll again');
+    assert.match(text(start), /just 5/);
+    assert.match(text(start), /If you only want Wave 10, level Black to 10/);
+    const five = evaluate(run.deploys, run.slots, false, false, [0, 5, 0]);
+    assert.equal(five.title, 'Black is level 5. Start rolling.');
+    assert.match(text(five), /max that color to 10 and put the rest back into Black/);
+    const late = reach('CSE', 7);
+    assert.equal(evaluate(late.deploys, late.slots, false, false, [0, 5, 0]).title, 'Black is level 5. Start rolling.');
+    assert.equal(evaluate(late.deploys, late.slots, false, false, [0, 0, 0]).title, 'Level Black to 10 before you roll again');
+  });
+  it('a winning Black hand is leveled to 10 as usual (BSB is Wave 10)', () => {
+    const run = reach('BSB', 5);
+    assert.match(evaluate(run.deploys, run.slots, false, false, [0, 0, 0]).title, /Level Black to 10/);
+  });
+  it('level every S at once: you need a solo S7+ or an S5 + S2 to make it past Wave 7', () => {
+    assert.match(text(verdict('S-C', 6)), /solo S7\+ or an S5 \+ S2/);
   });
 });
 
@@ -641,10 +675,10 @@ describe('Pills: confirmed, unstable, unconfirmed', () => {
   });
   it('the unstable ones match the sheet highlights and the post stars', () => {
     const unstable = PATTERNS.filter((x) => x.status === 'unstable').map((x) => `${x.ranks}@${x.max}`).sort();
-    assert.deepEqual(unstable, ['AES@4', 'AES@5', 'ASE@4', 'BSA@6', 'SAE@4', 'SAE@5', 'SBB@3', 'SSD@6']);
+    assert.deepEqual(unstable, ['AES@4', 'AES@5', 'ASE@4', 'BSA@6', 'CSA@4', 'DAS@3', 'SAE@4', 'SAE@5', 'SBB@3', 'SSD@6']);
   });
-  it('SSS at 12 is the only unconfirmed one', () => {
-    assert.deepEqual(PATTERNS.filter((x) => x.status === 'unconfirmed').map((x) => `${x.ranks}@${x.max}`), ['SSS@12']);
+  it('SSC at 9 (listed as Red SS+C, only SCS found) is the only unconfirmed one', () => {
+    assert.deepEqual(PATTERNS.filter((x) => x.status === 'unconfirmed').map((x) => `${x.ranks}@${x.max}`), ['SSC@9']);
   });
   it('the "Still possible" targets carry their status', () => {
     const v = evaluate(0, ['', '', ''], false);

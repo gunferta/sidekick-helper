@@ -12,52 +12,70 @@ export const W10 = 'Wave 10';
 // Keys for the post's "Final Result" level plans (see PLAN). The advice shown is built from your actual hand.
 const SA = 'S10+A9';
 const SA7 = 'S10+A8';
-const MIN5 = 'S10+A10+1';
-const MIN3 = 'Red10+Black10+Yellow3';
-const SS = 'S10+S5';
-const WV = 'S10+B7';
-const WSTAR = 'S10 is enough';
 const SA8 = 'S10+A7';
+const MIN5 = 'S10+A10+1';
 const MIN4 = 'S10+A10+2';
+const MIN3 = 'Red10+Black10+Yellow3';
+const DAS3 = 'D3+A10+S10 (Yellow first)';
+const SS = 'S10+S5';
+const SS4 = 'S10+S10+2';
 const SS6 = 'S10+S9';
 const SS7 = 'S10+S8';
 const SS8 = 'S10+S7';
-const SSD6 = 'S10+S9 (S-Black first)';
+const SS9 = 'S10+S6';
+const SSA11 = 'S10+S3+A1';
 const SSS12 = 'S10+S2';
+// S10 on Black (keys start with "Black ", used only once S-Black is level 10): second S level by deploy count
+const BLK_SSD6 = 'Black SSD at 6';
+const BLK_CSS6 = 'Black CSS at 6';
+const BLK_SSD7 = 'Black SSD at 7';
+const BLK_CSS7 = 'Black CSS at 7';
+const BLK_SSC8 = 'Black SSC at 8';
+const WV = 'S10+B7';
+const WSTAR = 'S10 is enough';
 // Marked "Unstable" (highlighted) on the community sheet
 const TIGHT = 'extremely tight, collect points and upgrade exactly on time';
 const p = (tier, ranks, max, levels, note = '', status = 'confirmed') => ({ tier, ranks, max, levels, note, status });
 
 // Tables are listed smallest deploy cap first, so a hand that fits several tables uses the nearest one for its level plan.
+// "any SS" rows (the third unit can be any rank) have the S10 on Red or Yellow; Black-column rows only apply once S-Black is level 10.
 export const PATTERNS = [
-  // E-Rank Min All Clear: 4 deploys (Wave 1), final S10 + A10 + 2. "A 1 second left type of clear." SEA and EAS are untested.
-  p(FC, 'SAE', 4, MIN4, `${TIGHT}, about 1 second to spare`, 'unstable'),
-  p(FC, 'ASE', 4, MIN4, `${TIGHT}, about 1 second to spare`, 'unstable'),
-  p(FC, 'AES', 4, MIN4, `${TIGHT}, about 1 second to spare`, 'unstable'),
-  // Min All Clear: 5 deploys (Wave 2), final S10 + A10 + 1
-  p(FC, 'SDA', 5, MIN5), p(FC, 'ASD', 5, MIN5),
-  p(FC, 'SAE', 5, MIN5, `${TIGHT}; 2 more deploys can find a more stable hand`, 'unstable'),
-  p(FC, 'AES', 5, MIN5, `${TIGHT}; 2 more deploys can find a more stable hand`, 'unstable'),
-  p(FC, 'BSA', 5, MIN5), p(FC, 'BAS', 5, MIN5),
-  // All Clear: 6 deploys (Wave 2), final S10 + A9
-  p(FC, 'SAC', 6, SA), p(FC, 'SCA', 6, SA), p(FC, 'ASB', 6, SA), p(FC, 'ACS', 6, SA), p(FC, 'BAS', 6, SA),
-  p(FC, 'BSA', 6, SA, TIGHT, 'unstable'),
-  // All Clear: 7 deploys (Wave 3), final S10 + A8
-  p(FC, 'SAB', 7, SA7), p(FC, 'SBA', 7, SA7), p(FC, 'ASA', 7, SA7), p(FC, 'ABS', 7, SA7), p(FC, 'BAS', 7, SA7),
-  // Double S (any third unit): 6 deploys (10 + 9) and 7 deploys (10 + 8), with the S10 on Red or Yellow.
-  // S-Black as the S10 only has SSD at 6 deploys (cleared with 10s left).
-  p(FC, 'SSE', 6, SS6), p(FC, 'SES', 6, SS6), p(FC, 'ESS', 6, SS6),
-  p(FC, 'SSD', 6, SSD6, 'S-Black first, cleared with only 10 seconds left', 'unstable'),
-  p(FC, 'SSE', 7, SS7), p(FC, 'SES', 7, SS7), p(FC, 'DSS', 7, SS7),
-  // All Clear: 8 deploys (Wave 3), final S10 + A7 / S10 + S7 (community sheet). The double S ones need the S10 on Red or Yellow, never Black.
-  p(FC, 'SAA', 8, SA8), p(FC, 'ASA', 8, SA8), p(FC, 'AAS', 8, SA8),
-  p(FC, 'SSE', 8, SS8), p(FC, 'SES', 8, SS8), p(FC, 'CSS', 8, SS8),
-  // All Clear, Double S: up to 10 deploys (Wave 4)
-  p(FC, 'SSB', 10, SS), p(FC, 'SBS', 10, SS), p(FC, 'BSS', 10, SS),
-  // Triple S: 12 deploys (Wave 5), final S10 + 2, unconfirmed on the sheet
-  p(FC, 'SSS', 12, SSS12, 'the sheet marks it with a ?', 'unconfirmed'),
   // Extreme Min All Clear: 3 deploys (Wave 1)
   p(FC, 'SBB', 3, MIN3, 'extremely RNG-based, not a guaranteed clear', 'unstable'),
+  p(FC, 'DAS', 3, DAS3, 'Yellow DAS cleared with only 3 seconds left', 'unstable'),
+  // E-Rank+ Min All Clear: 4 deploys (Wave 1), final S10 + A10 + 2. "A 1 second left type of clear."
+  p(FC, 'SAE', 4, MIN4, `${TIGHT}, about 1 second to spare`, 'unstable'),
+  p(FC, 'ASE', 4, MIN4, `${TIGHT}, about 1 second to spare`, 'unstable'),
+  p(FC, 'CSA', 4, MIN4, `${TIGHT}, about 1 second to spare`, 'unstable'),
+  p(FC, 'AES', 4, MIN4, `${TIGHT}, about 1 second to spare`, 'unstable'),
+  p(FC, 'SSE', 4, SS4), p(FC, 'SES', 4, SS4), p(FC, 'ESS', 4, SS4), // any SS at 4 deploys, final S10 + S10 + 2
+  // Min All Clear: 5 deploys (Wave 2), final S10 + A10 + 1
+  p(FC, 'SEA', 5, MIN5), p(FC, 'ASD', 5, MIN5),
+  p(FC, 'SAE', 5, MIN5, `${TIGHT}; 2 more deploys can find a more stable hand`, 'unstable'),
+  p(FC, 'AES', 5, MIN5, `${TIGHT}; 2 more deploys can find a more stable hand`, 'unstable'),
+  p(FC, 'BSA', 5, MIN5), p(FC, 'CAS', 5, MIN5),
+  // All Clear: 6 deploys (Wave 2), final S10 + A9, and any SS (S10 + S9)
+  p(FC, 'SAC', 6, SA), p(FC, 'SCA', 6, SA), p(FC, 'ASB', 6, SA), p(FC, 'ACS', 6, SA), p(FC, 'BAS', 6, SA),
+  p(FC, 'BSA', 6, SA, TIGHT, 'unstable'),
+  p(FC, 'SSE', 6, SS6), p(FC, 'SES', 6, SS6), p(FC, 'ESS', 6, SS6),
+  p(FC, 'SSD', 6, BLK_SSD6, 'S-Black first, cleared with only 10 seconds left', 'unstable'),
+  p(FC, 'CSS', 6, BLK_CSS6),
+  // All Clear: 7 deploys (Wave 3), final S10 + A8, and any SS (S10 + S8); the SS rows work up to 8 deploys
+  p(FC, 'SAB', 7, SA7), p(FC, 'SBA', 7, SA7), p(FC, 'ASA', 7, SA7), p(FC, 'ABS', 7, SA7), p(FC, 'BAS', 7, SA7),
+  p(FC, 'SSE', 7, SS7), p(FC, 'SES', 7, SS7), p(FC, 'ESS', 7, SS7),
+  p(FC, 'SSD', 7, BLK_SSD7), p(FC, 'CSS', 7, BLK_CSS7),
+  // All Clear: 8 deploys (Wave 3), final S10 + A7 / S10 + S7
+  p(FC, 'SAA', 8, SA8), p(FC, 'ASA', 8, SA8), p(FC, 'AAS', 8, SA8),
+  p(FC, 'SSE', 8, SS8), p(FC, 'SES', 8, SS8), p(FC, 'ESS', 8, SS8),
+  p(FC, 'SSC', 8, BLK_SSC8),
+  // 9 deploys (Wave 4), final S10 + S6. Only SCS has been found; the Red column lists SS+C
+  p(FC, 'SCS', 9, SS9),
+  p(FC, 'SSC', 9, SS9, 'listed as Red SS+C on the sheet, but only SCS has been found so far', 'unconfirmed'),
+  // All Clear, Double S: up to 10 deploys (Wave 4)
+  p(FC, 'SSB', 10, SS), p(FC, 'SBS', 10, SS), p(FC, 'BSS', 10, SS),
+  // 11 deploys: only SSA found so far (S10 + S3 + A1). 12 deploys: triple S (S10 + S2)
+  p(FC, 'SSA', 11, SSA11),
+  p(FC, 'SSS', 12, SSS12),
   // Wave 10: 8 deploys (Wave 3), around 14 with S Red. A star in the post means maxing that S is enough.
   p(W10, 'SDD', 14, WSTAR, 'maxing S Red is enough'),
   p(W10, 'BSB', 8, WV),
@@ -102,18 +120,34 @@ const mins = (pts) => {
 const fmt = (n) => n.toLocaleString('en-US');
 // Target levels by rank order (best rank first; ties Red > Yellow > Black), from the post's final results
 // Arrays are levels by rank order (best rank first); byColor is levels for the Red, Black, Yellow slots
-const PLAN = new Map([[SA, [10, 9]], [SA7, [10, 8]], [MIN5, [10, 10, 1]], [SS, [10, 5]], [WV, [10, 7]], [WSTAR, [10]], [SA8, [10, 7]], [MIN4, [10, 10, 2]], [SS6, [10, 9]], [SS7, [10, 8]], [SS8, [10, 7]], [SSD6, { byColor: [9, 10, 0], order: [1, 0, 2] }], [SSS12, [10, 2]], [MIN3, { byColor: [10, 10, 3] }]]);
+const blackPlan = (second, level) => ({ byColor: [0, 10, 0].map((v, i) => (i === second ? level : v)), order: [1, second, second === 0 ? 2 : 0] });
+const PLAN = new Map([
+  [SA, [10, 9]], [SA7, [10, 8]], [SA8, [10, 7]], [MIN5, [10, 10, 1]], [MIN4, [10, 10, 2]], [MIN3, { byColor: [10, 10, 3] }],
+  [DAS3, { byColor: [3, 10, 10], order: [2, 1, 0] }],
+  [SS, [10, 5]], [SS4, [10, 10, 2]], [SS6, [10, 9]], [SS7, [10, 8]], [SS8, [10, 7]], [SS9, [10, 6]], [SSA11, [10, 3, 1]], [SSS12, [10, 2]],
+  [BLK_SSD6, blackPlan(0, 9)], [BLK_CSS6, blackPlan(2, 9)], [BLK_SSD7, blackPlan(0, 8)], [BLK_CSS7, blackPlan(2, 8)], [BLK_SSC8, blackPlan(0, 7)],
+  [WV, [10, 7]], [WSTAR, [10]],
+]);
 const SHORT_PLAN = [10, 10];
 const COLOR_PRIORITY = [0, 2, 1];
 
-// The S to level first: Red, then Yellow, then Black
-function levelStep(slots, levels) {
+// The S to level first: Red, then Yellow, then Black.
+// blackFive: the sheet's S-Black strategy. A lone S-Black that is not a winning hand gets just level 5, then you keep deploying;
+// if another S shows up before deploy 10, max that color to 10 instead and put the rest back into Black.
+function levelStep(slots, levels, deploys = 0, blackFive = false) {
   const i = COLOR_PRIORITY.find((c) => slots[c] === 'S');
   if (i === undefined || !levels) return null;
   const lv = levels[i];
-  if (lv >= LEVEL_CAP) return { i, done: true, text: `${SLOTS[i]} S is already level 10, so start rolling.` };
+  if (blackFive && i === 1 && lv < LEVEL_CAP) {
+    const rest = 'If another S shows up before deploy 10, max that color to 10 and put the rest back into Black.';
+    if (lv === 5 && deploys < 10) return { i, target: 5, done: true, black5: true, text: `Black S is at level 5. Keep deploying. ${rest}` };
+    if (lv < 5 && deploys <= 5) {
+      return { i, target: 5, done: false, black5: true, text: `Black S is level ${lv}. It is your first S and not a winning Black hand, so level it to just 5 and keep deploying. ${rest} If you only want Wave 10, level Black to 10 instead.` };
+    }
+  }
+  if (lv >= LEVEL_CAP) return { i, target: LEVEL_CAP, done: true, text: `${SLOTS[i]} S is already level 10, so start rolling.` };
   const pts = upgradeCost(lv, LEVEL_CAP);
-  return { i, done: false, text: `${SLOTS[i]} S is level ${lv}. Getting to 10 costs ${fmt(pts)} points, about ${mins(pts)} min of points.` };
+  return { i, target: LEVEL_CAP, done: false, text: `${SLOTS[i]} S is level ${lv}. Getting to 10 costs ${fmt(pts)} points, about ${mins(pts)} min of points.` };
 }
 
 // Among the combos your hand matches, the one closest to it (fewest spare rank steps)
@@ -144,7 +178,7 @@ const blackFirst = (slots, levels) => Boolean(levels) && slots[1] === 'S' && lev
 
 const earlyDoubleS = (slots, levels) =>
   blackFirst(slots, levels)
-    ? 'You got your Double S early, but your first S is Black. Within 6 deploys S10 + S9 works for all three colors; past 6 deploys the 10-deploy table is the minimum for an S10 Black.'
+    ? 'You got your Double S early, but your first S is Black. With S-Black as the S10 only SSD or CSS work within 7 deploys and SSC at 8; after that the 10-deploy table is the minimum.'
     : 'You got your Double S early. Within 8 deploys with the first S Red or Yellow, S10 + S7 is mostly enough. Within 6 deploys, S10 + S9 works for all three colors.';
 
 // fcOnly: All Clear is the only goal, so Wave 10 results are ignored and the short-on-time shortcut is off.
@@ -158,8 +192,9 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
     const gaps = [];
     pt.ranks.split('').forEach((r, i) => { if (V[slots[i]] < V[r]) gaps.push(i); });
     const left = pt.max - deploys;
-    // The 6, 7 and 8 deploy double S clears need the S10 on Red or Yellow. Once Black is the only S at level 10 they no longer apply.
-    const blocked = [SS6, SS7, SS8].includes(pt.levels) && blackFirst(slots, levels);
+    // The 6 to 9 deploy double S clears need the S10 on Red or Yellow. Once Black is the only S at level 10 they no longer apply, and the Black rows take over.
+    const blackOnly = pt.levels.startsWith('Black ');
+    const blocked = blackOnly ? !blackFirst(slots, levels) : [SS6, SS7, SS8, SS9, SSA11].includes(pt.levels) && blackFirst(slots, levels);
     return { ...pt, gaps, left, done: !gaps.length && left >= 0 && !blocked, open: gaps.length > 0 && left >= gaps.length && !blocked };
   });
   const byDistance = (a, b) => a.gaps.length - b.gaps.length || b.left - a.left;
@@ -207,7 +242,7 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
       return out('stop', 'All Clear locked in. Stop deploying.', [
         planNote(PLAN.get(sure.levels)),
         sure.levels === SS && deploys < 10 && earlyDoubleS(slots, levels),
-        [SS6, SS7, SS8].includes(sure.levels) && 'These double S clears need the S10 on Red or Yellow, not Black. With S-Black as the S10, only SSD is recorded (6 deploys), and past 6 deploys the 10-deploy table is the minimum.',
+        [SS6, SS7, SS8, SS9].includes(sure.levels) && 'These double S clears need the S10 on Red or Yellow. With S-Black as the S10 only SSD or CSS work within 7 deploys, SSC at 8, and after that the 10-deploy table is the minimum.',
         'More deploys only cost you level-ups now.',
       ]);
     }
@@ -256,12 +291,12 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
   }
 
   if (targets.length) {
-    const ls = levelStep(slots, levels);
+    const ls = levelStep(slots, levels, deploys, true);
     const title = !ls ? 'Level your S-rank, then keep deploying'
-      : ls.done ? `${SLOTS[ls.i]} is level 10. Start rolling.` : `Level ${SLOTS[ls.i]} to 10 before you roll again`;
+      : ls.done ? `${SLOTS[ls.i]} is level ${ls.target}. Start rolling.` : `Level ${SLOTS[ls.i]} to ${ls.target} before you roll again`;
     return out('go', title, [
-      ls ? ls.text : 'Level the S-rank to 10 first. Without it you will not make it past Wave 6, even with two S-Ranks.',
-      ls && !ls.done && 'Level every S the moment you get it: without level 10 you will not make it past Wave 6, even with two S-Ranks. Then start rolling again.',
+      ls ? ls.text : 'Level the S-rank to 10 first. You need at least a solo S7+ or an S5 + S2 to make it past Wave 7.',
+      ls && !ls.done && !ls.black5 && 'Level every S the moment you get it. You need at least a solo S7+ or an S5 + S2 to make it past Wave 7. Then start rolling again.',
       'Do not level A/B ranks between deploys: level-ups are not retroactive if the slot changes rank.',
       !fcOnly && deploys > w10Cap(slots) && `Past ${w10Cap(slots)} deploys the Wave 10 result is gone. Only worth it to chase a Double S.`,
     ]);

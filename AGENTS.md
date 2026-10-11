@@ -1,0 +1,1 @@
+All skils are in the skills folder. Take a look at ./skills/README.md

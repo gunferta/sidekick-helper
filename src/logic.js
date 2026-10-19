@@ -35,7 +35,7 @@ const WV = 'S10+B7';
 const WSTAR = 'S10 is enough';
 // Marked "Unstable" (highlighted) on the community sheet
 const TIGHT = 'extremely tight, collect points and upgrade exactly on time';
-const p = (tier, ranks, max, levels, note = '', status = 'confirmed') => ({ tier, ranks, max, levels, note, status });
+const p = (tier, ranks, max, levels, note = '', status = 'confirmed', minDeploys = 0) => ({ tier, ranks, max, levels, note, status, minDeploys });
 
 // Tables are listed smallest deploy cap first, so a hand that fits several tables uses the nearest one for its level plan.
 // "any SS" rows (the third unit can be any rank) have the S10 on Red or Yellow; Black-column rows only apply once S-Black is level 10.
@@ -53,7 +53,8 @@ export const PATTERNS = [
   p(FC, 'SEA', 5, MIN5), p(FC, 'ASD', 5, MIN5),
   p(FC, 'SAE', 5, MIN5, `${TIGHT}; 2 more deploys can find a more stable hand`, 'unstable'),
   p(FC, 'AES', 5, MIN5, `${TIGHT}; 2 more deploys can find a more stable hand`, 'unstable'),
-  p(FC, 'BSA', 5, MIN5), p(FC, 'CAS', 5, MIN5),
+  p(FC, 'BSA', 5, MIN5),
+  p(FC, 'DAS', 5, MIN5, '', 'confirmed', 4),
   // All Clear: 6 deploys (Wave 2), final S10 + A9, and any SS (S10 + S9)
   p(FC, 'SAC', 6, SA), p(FC, 'SCA', 6, SA), p(FC, 'ASB', 6, SA), p(FC, 'ACS', 6, SA), p(FC, 'BAS', 6, SA),
   p(FC, 'BSA', 6, SA, TIGHT, 'unstable'),
@@ -65,16 +66,16 @@ export const PATTERNS = [
   p(FC, 'SSE', 7, SS7), p(FC, 'SES', 7, SS7), p(FC, 'ESS', 7, SS7),
   p(FC, 'SSD', 7, BLK_SSD7), p(FC, 'CSS', 7, BLK_CSS7),
   // All Clear: 8 deploys (Wave 3), final S10 + A7 / S10 + S7
-  p(FC, 'SAA', 8, SA8), p(FC, 'ASA', 8, SA8), p(FC, 'AAS', 8, SA8),
+  p(FC, 'SAA', 8, SA8), p(FC, 'AAS', 8, SA8),
+  p(FC, 'ASA', 8, SA8, 'Black-column ASA is highlighted as unstable on the sheet', 'unstable'),
   p(FC, 'SSE', 8, SS8), p(FC, 'SES', 8, SS8), p(FC, 'ESS', 8, SS8),
   p(FC, 'SSC', 8, BLK_SSC8),
-  // 9 deploys (Wave 4), final S10 + S6. Only SCS has been found; the Red column lists SS+C
-  p(FC, 'SCS', 9, SS9),
-  p(FC, 'SSC', 9, SS9, 'listed as Red SS+C on the sheet, but only SCS has been found so far', 'unconfirmed'),
+  // 9 deploys (Wave 4), final S10 + S6; the current sheet lists Red SSD / SCS.
+  p(FC, 'SSD', 9, SS9), p(FC, 'SCS', 9, SS9),
   // All Clear, Double S: up to 10 deploys (Wave 4)
-  p(FC, 'SSB', 10, SS), p(FC, 'SBS', 10, SS), p(FC, 'BSS', 10, SS),
-  // 11 deploys: only SSA found so far (S10 + S3 + A1). 12 deploys: triple S (S10 + S2)
-  p(FC, 'SSA', 11, SSA11),
+  p(FC, 'SSC', 10, SS), p(FC, 'SSB', 10, SS), p(FC, 'SBS', 10, SS), p(FC, 'BSS', 10, SS),
+  // 11 deploys: Red SS+A and Yellow ASS use S10 + S3 + A1. 12 deploys: triple S (S10 + S2)
+  p(FC, 'SSA', 11, SSA11), p(FC, 'SAS', 11, SSA11), p(FC, 'ASS', 11, SSA11),
   p(FC, 'SSS', 12, SSS12),
   // Wave 10: 8 deploys (Wave 3), around 14 with S Red. A star in the post means maxing that S is enough.
   p(W10, 'SDD', 14, WSTAR, 'maxing S Red is enough'),
@@ -192,10 +193,13 @@ export function evaluate(deploys, slots, short, fcOnly = false, levels = null) {
     const gaps = [];
     pt.ranks.split('').forEach((r, i) => { if (V[slots[i]] < V[r]) gaps.push(i); });
     const left = pt.max - deploys;
-    // The 6 to 9 deploy double S clears need the S10 on Red or Yellow. Once Black is the only S at level 10 they no longer apply, and the Black rows take over.
-    const blackOnly = pt.levels.startsWith('Black ');
-    const blocked = blackOnly ? !blackFirst(slots, levels) : [SS6, SS7, SS8, SS9, SSA11].includes(pt.levels) && blackFirst(slots, levels);
-    return { ...pt, gaps, left, done: !gaps.length && left >= 0 && !blocked, open: gaps.length > 0 && left >= gaps.length && !blocked };
+    const isBlocked = (row) => {
+      // The 6 to 9 deploy double S clears need the S10 on Red or Yellow. Once Black is the only S at level 10 they no longer apply, and the Black rows take over.
+      const blackOnly = row.levels.startsWith('Black ');
+      return blackOnly ? !blackFirst(slots, levels) : [SS6, SS7, SS8, SS9, SSA11].includes(row.levels) && blackFirst(slots, levels);
+    };
+    const blocked = isBlocked(pt);
+    return { ...pt, gaps, left, done: !gaps.length && deploys >= pt.minDeploys && left >= 0 && !blocked, open: gaps.length > 0 && left >= gaps.length && !blocked };
   });
   const byDistance = (a, b) => a.gaps.length - b.gaps.length || b.left - a.left;
   const fc = rows.filter((r) => r.tier === FC && r.done);

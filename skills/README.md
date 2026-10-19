@@ -7,3 +7,5 @@ Three skills that let a fresh agent continue the Go Go Sidekick helper project:
 3. `sidekick-helper-verify`: the checks and scripts to run before shipping (text-vs-hand audit, better-hand-never-worse check, before/after snapshot diff).
 
 Install: add each folder as a skill (each has a SKILL.md with name and description), or attach the folders to a new chat/agent and tell it to read `sidekick-helper-project/SKILL.md` first. The repo itself (src, tests, scripts) is separate: upload your latest `src` along with the skills so the agent starts from your version.
+
+The updates are posted in `./update-folder`. The image is the updated deploy chart, but we should utilize the changelog as help to what has changed. The last time this was updated can be found by the current git commit which would say when the last update was pulled. 

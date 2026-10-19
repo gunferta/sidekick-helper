@@ -1,4 +1,4 @@
-// Checks src/logic.js against the combinations transcribed from the r/Maplestory post (Edit10) and the community sheet.
+// Checks src/logic.js against the latest supplied community sheet chart and changelog.
 // Run: npm run validate
 import { PATTERNS, evaluate } from '../src/logic.js';
 
@@ -8,7 +8,7 @@ const tables = {
   extreme3: [3, { Red: ['SBB'], Yellow: ['DAS'] }],
   min4: [4, { Red: ['SAE'], Black: ['ASE', 'CSA'], Yellow: ['AES'] }],
   ss4: [4, { Red: ['SSE', 'SES'], Yellow: ['SES', 'ESS'] }],
-  min5: [5, { Red: ['SEA', 'SAE'], Black: ['ASD', 'BSA'], Yellow: ['AES', 'CAS'] }],
+  min5: [5, { Red: ['SEA', 'SAE'], Black: ['ASD', 'BSA'], Yellow: ['AES', 'DAS'] }],
   fullClear6: [6, { Red: ['SAC', 'SCA'], Black: ['ASB', 'BSA'], Yellow: ['ACS', 'BAS'] }],
   ss6: [6, { Red: ['SSE', 'SES'], Yellow: ['SES', 'ESS'] }],
   ss6black: [6, { Black: ['SSD', 'CSS'] }, true],
@@ -18,9 +18,9 @@ const tables = {
   sheet8: [8, { Red: ['SAA'], Black: ['ASA'], Yellow: ['AAS'] }],
   ss8: [8, { Red: ['SSE', 'SES'], Yellow: ['SES', 'ESS'] }],
   ss8black: [8, { Black: ['SSC'] }, true],
-  ss9: [9, { Red: ['SSC', 'SCS'], Yellow: ['SCS'] }], // Red lists SS+C, only SCS has been found
-  doubleS10: [10, { Red: ['SSB', 'SBS'], Black: ['SSB', 'BSS'], Yellow: ['BSS', 'SBS'] }],
-  ss11: [11, { Red: ['SSA'] }],
+  ss9: [9, { Red: ['SSD', 'SCS'], Yellow: ['SCS'] }],
+  doubleS10: [10, { Red: ['SSC', 'SBS'], Black: ['SSB', 'BSS'], Yellow: ['BSS', 'SBS'] }],
+  ss11: [11, { Red: ['SSA', 'SAS'], Yellow: ['ASS'] }],
 };
 const tripleS = ['SSS']; // 12 deploys, spans all columns
 const wave10 = { Red: ['SDD'], Black: ['BSB'], Yellow: ['BDS', 'DBS'] };
@@ -74,7 +74,8 @@ console.log(`exhaustive: ${cases} states (deploys 0-16 x 343 slot combos)`);
 // 4. Scenarios stated in the post and the sheet
 const ev = (d, s, short = false, levels = null) => evaluate(d, s, short, false, levels);
 ok(label(ev(3, ['S', 'B', 'B'])) === 'FC' && ev(3, ['S', 'B', 'B']).title.startsWith('Probably') && label(ev(4, ['S', 'B', 'B'])) !== 'FC', 'SBB at 3 is extremely RNG');
-ok(label(ev(3, ['D', 'A', 'S'])) === 'FC' && ev(3, ['D', 'A', 'S']).title.startsWith('Probably') && label(ev(4, ['D', 'A', 'S'])) !== 'FC', 'DAS at 3 is unstable');
+ok(label(ev(3, ['D', 'A', 'S'])) === 'FC' && ev(3, ['D', 'A', 'S']).title.startsWith('Probably') && label(ev(4, ['D', 'A', 'S'])) === 'FC' && !ev(4, ['D', 'A', 'S']).title.startsWith('Probably') && label(ev(6, ['D', 'A', 'S'])) !== 'FC', 'DAS at 3 is unstable; the confirmed 5-deploy row applies from 4 deploys');
+ok(label(ev(5, ['D', 'A', 'S'])) === 'FC' && !ev(5, ['D', 'A', 'S']).title.startsWith('Probably') && label(ev(6, ['D', 'A', 'S'])) !== 'FC', 'DAS at 5 is confirmed');
 ok(label(ev(4, ['C', 'S', 'A'])) === 'FC' && label(ev(5, ['C', 'S', 'A'])) !== 'FC', 'CSA works at 4 deploys only');
 ok(label(ev(4, ['S', 'A', 'E'])) === 'FC' && label(ev(5, ['A', 'S', 'E'])) !== 'FC', '4-deploy SAE works, ASE only at 4');
 ok(label(ev(4, ['E', 'S', 'S'])) === 'FC' && label(ev(4, ['S', 'E', 'S'])) === 'FC', 'any SS works at 4');
@@ -87,10 +88,12 @@ ok(label(ev(7, ['S', 'A', 'B'])) === 'FC' && label(ev(7, ['S', 'B', 'A'])) === '
 ok(label(ev(7, ['A', 'S', 'B'])) !== 'FC' && label(ev(7, ['A', 'S', 'A'])) === 'FC', 'ASB at 7 is NOT an All Clear (needs ASA)');
 ok(label(ev(6, ['E', 'S', 'S'])) === 'FC' && label(ev(7, ['E', 'S', 'S'])) === 'FC' && label(ev(8, ['E', 'S', 'S'])) === 'FC' && label(ev(9, ['E', 'S', 'S'])) !== 'FC', 'any SS (ESS too) works through 8 deploys');
 ok(label(ev(8, ['S', 'A', 'A'])) === 'FC' && label(ev(9, ['S', 'A', 'A'])) !== 'FC', 'SAA works at 8 deploys');
-ok(label(ev(9, ['S', 'C', 'S'])) === 'FC' && label(ev(10, ['S', 'C', 'S'])) !== 'FC', 'SCS works at 9');
-ok(ev(9, ['S', 'S', 'C']).title.startsWith('Probably'), 'SSC at 9 is only listed as Red SS+C (unconfirmed)');
+ok(label(ev(8, ['A', 'S', 'A'])) === 'FC' && ev(8, ['A', 'S', 'A']).title.startsWith('Probably'), 'Black-column ASA at 8 is unstable');
+ok(label(ev(9, ['S', 'S', 'D'])) === 'FC' && label(ev(9, ['S', 'C', 'S'])) === 'FC' && label(ev(10, ['S', 'C', 'S'])) !== 'FC', 'SSD and SCS work at 9');
+ok(label(ev(9, ['S', 'S', 'C'])) === 'FC', 'SSC at 9 is covered by the 10-deploy table cap');
+ok(label(ev(10, ['S', 'S', 'C'])) === 'FC', 'SSC works at 10');
 ok(label(ev(10, ['S', 'S', 'B'])) === 'FC' && label(ev(11, ['S', 'S', 'B'])) !== 'FC', 'SSB works at 10');
-ok(label(ev(11, ['S', 'S', 'A'])) === 'FC' && label(ev(12, ['S', 'S', 'A'])) !== 'FC', 'SSA works at 11');
+ok(label(ev(11, ['S', 'S', 'A'])) === 'FC' && label(ev(11, ['S', 'A', 'S'])) === 'FC' && label(ev(11, ['A', 'S', 'S'])) === 'FC', 'Red SS+A and Yellow ASS work at 11');
 ok(label(ev(12, ['S', 'S', 'S'])) === 'FC' && label(ev(13, ['S', 'S', 'S'])) !== 'FC', 'SSS works at 12');
 ok(label(ev(14, ['S', 'D', 'D'])) === 'W10' && label(ev(15, ['S', 'D', 'D'])) === 'none', 'S Red Wave 10 lasts around 14 deploys');
 ok(label(ev(8, ['B', 'S', 'B'])) === 'W10' && label(ev(9, ['B', 'S', 'B'])) === 'none', 'S Black Wave 10 lasts 8 deploys');

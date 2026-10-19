@@ -164,7 +164,6 @@ describe('Min All Clear: 5 deploys, by Wave 2', () => {
     ASC: 'Level Black S to 10, then Red A to 10, then Yellow C to 1 (aim S10 + A10 + C1).', // beats ASD
     ASD: 'Level Black S to 10, then Red A to 10, then Yellow D to 1 (aim S10 + A10 + D1).',
     BSA: 'Level Black S to 10, then Yellow A to 10, then Red B to 1 (aim S10 + A10 + B1).',
-    CAS: 'Level Yellow S to 10, then Black A to 10, then Red C to 1 (aim S10 + A10 + C1).',
   };
   for (const [combo, advice] of Object.entries(min5)) {
     it(`${combo} at 5 deploys is an All Clear: ${advice}`, () => {
@@ -177,6 +176,14 @@ describe('Min All Clear: 5 deploys, by Wave 2', () => {
     const v = verdict('BAS', 5);
     assert.ok(fullClear(v), text(v));
     assert.ok(text(v).includes('Level Yellow S to 10, then Black A to 9 (aim S10 + A9).'), text(v));
+  });
+  it('DAS at 5 deploys is confirmed, replacing the former CAS row', () => {
+    const v = verdict('DAS', 5);
+    assert.ok(fullClear(v), text(v));
+    assert.doesNotMatch(v.title, /^Probably an All Clear/);
+    assert.ok(fullClear(verdict('CAS', 5))); // the Yellow DAS row dominates CAS
+    assert.ok(!fullClear(verdict('DAS', 6)));
+    assert.ok(fullClear(verdict('DAS', 4)));
   });
   it('SAE and AES are unstable: extremely tight, collect points and upgrade on time', () => {
     for (const combo of ['SAE', 'AES']) {
@@ -518,9 +525,10 @@ describe('Sheet rows: 8 deploys and the S-Black column', () => {
     AAS: 'Level Yellow S to 10, then Red A to 7 (aim S10 + A7).',
   };
   for (const [combo, advice] of Object.entries(sheet8A)) {
-    it(`${combo} at 8 deploys is an All Clear: ${advice}`, () => {
+    it(`${combo} at 8 deploys is ${combo === 'ASA' ? 'unstable' : 'an All Clear'}: ${advice}`, () => {
       const v = verdict(combo, 8);
-      assert.ok(fullClear(v), text(v));
+      if (combo === 'ASA') assert.match(v.title, /^Probably an All Clear/);
+      else assert.ok(fullClear(v), text(v));
       assert.ok(text(v).includes(advice), text(v));
     });
     it(`${combo} at 9 deploys is no longer an All Clear`, () => assert.ok(!fullClear(verdict(combo, 9))));
@@ -593,7 +601,8 @@ describe('Edit10 and the sheet: small hands, any SS, and the late rows', () => {
     assert.match(v.title, /^Probably an All Clear/);
     assert.match(text(v), /3 seconds left/);
     assert.ok(text(v).includes('Level Yellow S to 10, then Black A to 10, then Red D to 3 (aim S10 + A10 + D3).'), text(v));
-    assert.ok(!/^Probably an All Clear/.test(verdict('DAS', 4).title));
+    assert.match(verdict('DAS', 3).title, /^Probably an All Clear/);
+    assert.ok(!fullClear(verdict('DAS', 6)));
   });
   it('any double S at 4 deploys: S10 + S10 + 2, then at 5 it falls back to the 6-deploy S10 + S9', () => {
     assert.ok(text(verdict('SSE', 4)).includes('Level Red S to 10, then Black S to 10, then Yellow E to 2 (aim S10 + S10 + E2).'));
@@ -625,19 +634,29 @@ describe('Edit10 and the sheet: small hands, any SS, and the late rows', () => {
     assert.ok(!fullClear(run('SSD', 8)) && fullClear(run('SSC', 8)));
     assert.ok(!fullClear(run('SSE', 6)));
   });
-  it('9 deploys: SCS is found (S10 + S6); SSC is only listed as Red SS+C, so it is unconfirmed', () => {
+  it('9 deploys: SSD and SCS are confirmed (S10 + S6)', () => {
+    const ssd = verdict('SSD', 9);
+    assert.ok(fullClear(ssd), text(ssd));
+    assert.ok(text(ssd).includes('Level Red S to 10, then Black S to 6 (aim S10 + S6).'), text(ssd));
     const scs = verdict('SCS', 9);
     assert.ok(fullClear(scs), text(scs));
     assert.ok(text(scs).includes('Level Red S to 10, then Yellow S to 6 (aim S10 + S6).'), text(scs));
-    const ssc = verdict('SSC', 9);
-    assert.match(ssc.title, /^Probably an All Clear/);
-    assert.match(text(ssc), /Unconfirmed combination/);
+    assert.ok(fullClear(verdict('SSC', 9))); // the 10-deploy table's cap also covers an earlier hand
     assert.ok(!fullClear(verdict('SCS', 10)));
   });
-  it('11 deploys: SSA (S10 + S3 + A1). 12 deploys: SSS (S10 + S2)', () => {
+  it('10 deploys: SSC is now listed; 11 deploys: SS+A and ASS use S10 + S3 + A1; 12 deploys: SSS uses S10 + S2', () => {
+    const ssc = verdict('SSC', 10);
+    assert.ok(fullClear(ssc), text(ssc));
+    assert.ok(text(ssc).includes('Level Red S to 10, then Black S to 5 (aim S10 + S5).'), text(ssc));
     const ssa = verdict('SSA', 11);
     assert.ok(fullClear(ssa), text(ssa));
     assert.ok(text(ssa).includes('Level Red S to 10, then Black S to 3, then Yellow A to 1 (aim S10 + S3 + A1).'), text(ssa));
+    const sas = verdict('SAS', 11);
+    assert.ok(fullClear(sas), text(sas));
+    assert.ok(text(sas).includes('Level Red S to 10, then Yellow S to 3, then Black A to 1 (aim S10 + S3 + A1).'), text(sas));
+    const ass = verdict('ASS', 11);
+    assert.ok(fullClear(ass), text(ass));
+    assert.ok(text(ass).includes('Level Yellow S to 10, then Black S to 3, then Red A to 1 (aim S10 + S3 + A1).'), text(ass));
     assert.ok(!fullClear(verdict('SSA', 12)));
     const sss = verdict('SSS', 12);
     assert.ok(fullClear(sss), text(sss));
@@ -675,10 +694,10 @@ describe('Pills: confirmed, unstable, unconfirmed', () => {
   });
   it('the unstable ones match the sheet highlights and the post stars', () => {
     const unstable = PATTERNS.filter((x) => x.status === 'unstable').map((x) => `${x.ranks}@${x.max}`).sort();
-    assert.deepEqual(unstable, ['AES@4', 'AES@5', 'ASE@4', 'BSA@6', 'CSA@4', 'DAS@3', 'SAE@4', 'SAE@5', 'SBB@3', 'SSD@6']);
+    assert.deepEqual(unstable, ['AES@4', 'AES@5', 'ASA@8', 'ASE@4', 'BSA@6', 'CSA@4', 'DAS@3', 'SAE@4', 'SAE@5', 'SBB@3', 'SSD@6']);
   });
-  it('SSC at 9 (listed as Red SS+C, only SCS found) is the only unconfirmed one', () => {
-    assert.deepEqual(PATTERNS.filter((x) => x.status === 'unconfirmed').map((x) => `${x.ranks}@${x.max}`), ['SSC@9']);
+  it('all combinations in the latest chart are confirmed or marked unstable', () => {
+    assert.deepEqual(PATTERNS.filter((x) => x.status === 'unconfirmed').map((x) => `${x.ranks}@${x.max}`), []);
   });
   it('the "Still possible" targets carry their status', () => {
     const v = evaluate(0, ['', '', ''], false);

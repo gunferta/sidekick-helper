@@ -10,6 +10,7 @@
 |---|---|
 | `any SS` (blue) | double S with any third rank (write out SSE, SES, ESS as needed; the third slot must hold at least an E) |
 | `SS+C` | double S whose third unit is C or better |
+| `SS+A` | double S whose third unit is A or better; honor the column's S-color condition (for example, Red-column `SS+A` requires Red S) |
 | `SSD / CSS` | two alternatives in one cell |
 | `-` | no combination |
 | `?` | unknown or untested. Skip it, or add as `unconfirmed` |

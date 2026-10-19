@@ -10,10 +10,11 @@ Read `sidekick-helper-project` first. Then:
 ## 1. Collect the sources
 - The pasted Reddit text (note the highest "EditN" at the bottom: that is the version).
 - The sheet **screenshot** (yellow cells = Unstable, blue cells = Double S required) and the changelog lines. Treat the screenshot as newer than the Reddit tables when they differ; the post even points to the sheet as the consolidated version.
+- Check `update-folder/` for the latest chart image and changelog. Record the screenshot capture date separately from the latest dated changelog entry; a fresh screenshot can show the current sheet even when its last logged change is older. Compare the source changes with the latest valid-combinations code update (confirm with the user if the commit history is ambiguous); treat later source changes as pending, not already implemented. Update `references/current-state.md` to record the code-sync point, screenshot date, and latest changelog date separately.
 - Do not trust web_fetch of the sheet for current content (stale cache). It is fine to fetch once to confirm the link works.
 
 ## 2. Read the notation correctly
-See `references/reading-the-sheet.md`. Key points: columns are which color holds the S10 (S Red / S Black / S Yellow); strings are Red-Black-Yellow; "any SS" means a double S with any third rank; "SS+C" means third unit C or better; "?" means unknown (skip, or add as Unconfirmed); "-" means none; stars mean tight/unstable; "Final Upgrade 10 + 9" is the level plan.
+See `references/reading-the-sheet.md`. Key points: columns are which color holds the S10 (S Red / S Black / S Yellow); strings are Red-Black-Yellow; "any SS" means a double S with any third rank; "SS+C" means third unit C or better; "SS+A" means two S units and a third unit A or better, subject to the S-color column; "?" means unknown (skip, or add as Unconfirmed); "-" means none; stars mean tight/unstable; "Final Upgrade 10 + 9" is the level plan.
 
 ## 3. Find the gaps before editing
 1. Transcribe every table into the `tables` object at the top of `tests/validate-against-post.mjs` (cap, columns, and `true` as the third item for Black-column rows that only apply once S-Black is level 10).
